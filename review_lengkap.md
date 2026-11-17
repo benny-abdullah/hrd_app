@@ -53,7 +53,7 @@ Seluruh fungsi aplikasi dibangun dalam konsep **Zero External Build Step** (Sing
 
 ---
 
-## 3. Review Mendalam 14 Modul Enterprise
+## 3. Review Mendalam 15 Modul Enterprise
 
 ### 3.1. Modul 1: Database Karyawan Terpusat, Multi-Holding & Menu Struktur Organisasi (Org Chart)
 * **Karakteristik & Kapabilitas**:
@@ -277,6 +277,51 @@ Seluruh fungsi aplikasi dibangun dalam konsep **Zero External Build Step** (Sing
 
 ---
 
+### 3.14. Modul 14: Manajemen Pengguna Sistem & Hak Akses (Enterprise User RBAC Engine)
+* **Karakteristik & Kapabilitas**:
+  - Dikhususkan untuk **HR Superadmin (Sarah Wijaya)** guna mengelola seluruh akun pengguna aplikasi secara tersentralisasi dan aman:
+    - **Dedicated Sidebar Menu**: Tombol menu *"Manajemen Pengguna (User RBAC)"* (`switchTab('users')`, `data-tab="users"`) dengan badge hitung pengguna otomatis dan hak akses terkunci khusus role admin (`.role-admin-only`).
+    - **Manajemen Kredensial & Akun Lengkap (Full CRUD)**:
+      1. *Create*: Tambah akun baru via modal `#userModal`, dilengkapi generator sandi acak aman (`generateRandomPassword()`), penugasan role sistem (Admin / Manager / Pegawai ESS), dan status aktif/terkunci.
+      2. *Read*: Tabel data pengguna sistem `#usersTableBody` lengkap dengan avatar, username `@username`, NIP terhubung, status 2FA, alamat IP login terakhir, dan waktu aktivitas.
+      3. *Update*: Sunting kredensial, ubah penempatan entitas/cabang, dan ubah status akun via modal `#userModal`.
+      4. *Delete*: Hapus akun dengan proteksi anti-hapus akun yang sedang login dan pencegahan penghapusan seluruh admin sistem.
+    - **Integrasi Master Data Pegawai (`#userEmployeeSelect`)**: Memilih karyawan dari database master secara otomatis mengisi data Nama, NIP, Email korporat, Unit Bisnis, Cabang, dan estimasi Role sesuai jabatan struktural.
+    - **Reset Sandi & PIN Mandiri (`resetUserPassword()`)**: Fasilitas bagi HR Superadmin untuk menolong staf yang lupa kata sandi dengan menghasilkan password sementara acak yang wajib diganti pada saat pertama kali login.
+    - **Penguncian Akun Instan (`toggleUserStatus()`)**: Beralih antara status *Aktif* dan *Terkunci / Suspended* dalam 1 klik untuk menonaktifkan sementara akses staf yang sedang dalam evaluasi atau penonaktifan darurat.
+    - **Audit Trail Keamanan & Riwayat Autentikasi (`#userAuditLogModal`)**: Catatan waktu login, alamat IP, perangkat, dan status keberhasilan/kegagalan login sesuai standar sertifikasi **ISO 27001**.
+    - **Ekspor Data Pengguna (`exportUsersCSV()`)**: Mengunduh seluruh daftar kredensial dan hak akses pengguna sistem ke dalam berkas CSV format UTF-8.
+    - **Simulasi Peran Instan (*Login As*) (`impersonateUser()`)**: Memungkinkan admin menguji secara instan sudut pandang peran yang bersangkutan tanpa perlu logout-login berulang kali.
+
+---
+
+### 3.15. Modul 15: Halaman Welcome & Landing Page Enterprise Terpadu (Welcome Screen & Session Lifecycle)
+* **Karakteristik & Kapabilitas**:
+  - Menyediakan pintu gerbang (*entry point*) visual berkelas dunia berlatar **tema putih bersih modern minimalis (*clean white light mode*)** dengan efek pendaran pencahayaan ambient lembut (*subtle pastel glowing gradients*), kartu putih dengan aksen warna granular per peran, dan integrasi penuh library **Bootstrap Icons v1.11.3 terbaru (`bi bi-*`)** yang menggantikan seluruh emoji generik dengan ikon vektor modern yang tajam dan seragam, tipografi tajam, dan elemen modern:
+    - **Header Navigasi Kaca (Glassmorphism Navbar)**:
+      - Logo resmi Talenta Enterprise dengan aksen gradasi merah-rose dan penanda versi sistem `v2.4`.
+      - Indikator status ketersediaan sistem: *Cloud HRIS • SLA 99.98% High Availability*.
+      - Tombol akses cepat: *"Masuk ke Sistem (Login) &rarr;"*.
+    - **Hero Section Informatif**:
+      - Headline: *"Transformasi Tata Kelola SDM Korporasi Skala Besar & Holding"*.
+      - Subjudul menjabarkan integrasi master 1.248+ karyawan multi-holding, struktur hierarkis 5-level, presensi GPS, payroll PPh 21 TER, 9-box talent matrix, dan ESS berbasis ISO 27001 & UU PDP.
+      - Tombol aksi utama: *"🚀 Masuk ke Portal HRIS"* dan *"📑 Eksplorasi Fitur Sistem"*.
+    - **3 Kartu Akses Demo Cepat 1-Klik (Hero Quick Role Access)**:
+      1. *👑 HR Superadmin (Sarah Wijaya)*: Menampilkan ringkasan akses holding, database 1.248 personel, payroll PPh 21 TER, dan User RBAC.
+      2. *👔 Line Manager (Hendro Susilo)*: Menampilkan pengawasan 4 staf operasional, otorisasi approval L1, jadwal shift, dan review KPI 360°.
+      3. *👷 Karyawan ESS (Budi Santoso)*: Menampilkan presensi GPS geofencing, form mandiri cuti/lembur, dan confidential payslip digital ber-QR code.
+    - **Strip Metrik Telemetri Korporat**:
+      - 5 Kartu Kaca: 1.248+ Personel, 3 Unit Bisnis Terpadu, 99.98% SLA, PP 58/2023 (PPh 21 TER), dan ISO 27001 / UU PDP No. 27/2022.
+    - **6 Kartu Modul Unggulan Korporat**:
+      - Menjabarkan kapabilitas utama: Multi-Holding, Live Geofencing, Payroll PPh 21 TER, Kotak Talenta 9-Box, ESS Portal & Approval L1/L2, serta Manajemen Pengguna RBAC.
+    - **Showcase Komparasi 3 Peran & Kepatuhan Regulasi**:
+      - Matriks perbandingan hak akses dan 4 pilar kepatuhan hukum (PP 58/2023, UU PDP No. 27/2022, ISO 27001, Depnaker RI).
+    - **Siklus Sesi Masuk & Keluar (Seamless Login & Logout Lifecycle)**:
+      - Tombol *"Keluar (Logout)"* tersedia secara eksplisit di header aplikasi kanan atas dan di dalam menu profil pengguna.
+      - Mengklik tombol Keluar secara instan mengakhiri sesi, membersihkan kredensial aktif, memunculkan notifikasi *"Anda telah keluar dan kembali ke Halaman Welcome"*, dan menampilkan Halaman Welcome secara halus tanpa perlu reload halaman.
+
+---
+
 ## 4. Matriks Checklist Komprehensif Seluruh Fitur & Elemen Sistem
 
 Tabel checklist di bawah ini merinci hasil audit implementasi riil pada berkas [`c:\hrd_app\index.html`](file:///c:/hrd_app/index.html):
@@ -340,6 +385,8 @@ Tabel checklist di bawah ini merinci hasil audit implementasi riil pada berkas [
 | **43** | Isolasi Data UU PDP | Isolasi Data Karyawan, Presensi, Gaji, Aset | Logika `applyRoleVisibility()` & scoping array | Semua Role | **`[x] TERVERIFIKASI`** |
 | **44** | Modal Cetak Scroll | Layout 3-Bagian (Sticky Top, Body Scroll, Bot)| `#reportModal`, `openPrintReportModal()` | Semua Role | **`[x] TERVERIFIKASI`** |
 | **45** | Layout Media Cetak | Header Dokumen Resmi, No-Print Class, QR | Aturan `@media print`, Kop PT Nusantara Solusi | Semua Role | **`[x] TERVERIFIKASI`** |
+| **46** | User Management RBAC | Manajemen Akun Pengguna Sistem (CRUD & Role) | `#tab-users`, `#userModal`, `#userAuditLogModal`, `renderUsersTable()`, `saveUserForm()`, `resetUserPassword()`, `deleteUser()` | Khusus Admin | **`[x] TERVERIFIKASI`** |
+| **47** | Halaman Welcome & Landing Page | Tampilan Beranda Modern Minimalis & Alur Logout | `#welcomeScreen`, `#authScreen`, `openLoginModal()`, `closeLoginModal()`, `handleLogout()`, telemetri 1.248+ SDM, 6 modul unggulan, 3 simulasi peran | Semua Role / Publik | **`[x] TERVERIFIKASI`** |
 
 ---
 

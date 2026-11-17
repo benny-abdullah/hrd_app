@@ -101,10 +101,12 @@ Tabel berikut menyandingkan setiap modul rencana dengan implementasi riil pada b
 | **16** | **Card Info Chart Desain Modern Minimalis (Chart.js)** | **`[x] TERIMPLEMENTASI`** | CDN Chart.js, `#dashboardChartsContainer`, `renderDashboardCharts()`, multi-bar, doughnut, horizontal bar interaktif sesuai role. |
 | **17** | **Pembedaan Peran Granular (Admin, Manager, ESS)** | **`[x] TERIMPLEMENTASI`** | Quick Role Pills (`#roleBtnAdmin`, `#roleBtnManager`, `#roleBtnEmployee`), `quickLogin()`, `setRole()`, `applyRoleVisibility()`, isolasi data & dropdown. |
 | **18** | **Modal Cetak Laporan Resmi Responsif (Scrollable)** | **`[x] TERIMPLEMENTASI`** | `#reportModal` layout 3-bagian (sticky header, scrollable body vertikal/horizontal `max-h-[94vh]`, sticky footer), `@media print` resmi. |
+| **19** | **Manajemen Pengguna & Hak Akses (User RBAC CRUD)** | **`[x] TERIMPLEMENTASI`** | Dedicated Menu Sidebar `switchTab('users')` (`.role-admin-only`), `#tab-users`, `#userModal`, `#userAuditLogModal`, CRUD akun pengguna lengkap, reset sandi acak, penguncian akun (suspend/active), 2FA enforcement, audit log login IP, dan ekspor CSV pengguna. |
+| **20** | **Halaman Welcome & Landing Portal Modern Minimalis** | **`[x] TERIMPLEMENTASI`** | `#welcomeScreen` landing page glassmorphism, hero banner transformasi HCM, strip telemetri 1.248+ FTE & 99.98% SLA, 6 kartu kapabilitas korporasi, 3 kartu simulasi peran cepat 1-klik (Admin, Manager, Karyawan), modal login `#authScreen`, dan tombol Logout di header navigasi yang kembali ke beranda welcome. |
 
 ---
 
-## 3. Rincian Teknis 12 Modul Enterprise Terintegrasi
+## 3. Rincian Teknis 14 Modul Enterprise Terintegrasi
 
 ### Modul 1: Multi-Unit Bisnis, Struktur Organisasi & Database Karyawan Terpusat
 * **Multi-Entity & Multi-Branch Architecture**:
@@ -269,6 +271,40 @@ Tabel berikut menyandingkan setiap modul rencana dengan implementasi riil pada b
   * **Admin (Sarah Wijaya)**: Melihat seluruh grup holding, kontrol CRUD penuh, dan konsolidasi finansial.
   * **Manager (Hendro Susilo)**: Pengawasan khusus tim divisi operasional (4 bawahan langsung). Tabel database, log presensi, pengajuan approval, arsip dokumen, tiket helpdesk, dan dropdown pegawai hanya menampilkan anak buahnya.
   * **Karyawan (Budi Santoso)**: Hanya melihat data profil diri sendiri, presensi personal, pengajuan permohonan personal, aset yang dipegang sendiri, dokumen atas nama sendiri, slip gaji digital personal, dan rapor KPI personal. Dropdown terkunci ke nama sendiri.
+
+### Modul 13: Manajemen Pengguna Sistem & Hak Akses (User Management & RBAC CRUD)
+* **Dedicated Menu & Kontrol Penuh Superadmin**:
+  * Tombol menu khusus di sidebar `switchTab('users')` (`.role-admin-only`) dengan badge total user sistem real-time.
+  * Operasi CRUD Pengguna Lengkap: Tambah Akun Baru, Edit Kredensial, Hapus Akun (proteksi anti-hapus user yang sedang aktif dan pencegahan sistem tanpa admin).
+* **Sinkronisasi Otomatis dengan Master Pegawai**:
+  * Dropdown selector `#userEmployeeSelect` untuk menghubungkan akun pengguna dengan database karyawan; otomatis mengisi NIP, Nama, Email, Perusahaan, Cabang, dan estimasi Role secara instan.
+* **Keamanan Kredensial & Audit Trail (ISO 27001)**:
+  * Generator sandi acak aman 10 digit (`generateRandomPassword()`).
+  * Reset kata sandi / PIN mandiri dengan notifikasi password sementara baru (`resetUserPassword()`).
+  * Toggle penguncian status akun seketika (*Active <-> Suspended*) (`toggleUserStatus()`).
+  * Modal riwayat login & deteksi anomali IP `#userAuditLogModal` sesuai standar **ISO 27001**.
+  * Unduh rekap akun pengguna ke format CSV (`exportUsersCSV()`).
+  * Opsi simulasi peran (*Login As*) untuk menguji sudut pandang role lain dalam 1 klik.
+
+---
+
+### Modul 14: Halaman Welcome & Landing Portal Modern Minimalis
+* **Arsitektur Glassmorphism Full-Screen (`#welcomeScreen`)**:
+  * Desain elegan bernuansa **putih bersih modern minimalis (*clean white light mode*)** dengan ambient subtle glowing gradients (`rose-100/50`, `indigo-100/40`), kartu putih dengan bayangan halus, dan integrasi pustaka ikon resmi **Bootstrap Icons v1.11.3 (`bi bi-*`)** yang menghadirkan ikon vektor modern, tajam, dan konsisten di seluruh navigasi sidebar, dasbor, dan kartu simulasi peran.
+  * Navigasi kaca sticky di bagian atas dengan logo `Talenta.Enterprise v2.4`, pill status ketersediaan *Cloud HRIS SLA 99.98%*, dan tombol aksi cepat *Masuk ke Sistem (Login)*.
+* **Hero Section & Strip Telemetri Korporasi**:
+  * Pesan korporat bernilai strategis: *"Transformasi Tata Kelola SDM Korporasi Skala Besar & Holding"*.
+  * Strip metrik kunci operasional: **1.248+ SDM Terkelola**, **3 Entitas Bisnis Holding**, **99.98% Cloud SLA**, **PP 58/2023 TER Ready**, dan **ISO 27001 / UU PDP No. 27/2022 Certified**.
+* **Simulasi Peran 1-Klik (Quick Role Exploration)**:
+  * 3 Kartu simulasi instan langsung di halaman beranda:
+    * 👑 **HR Superadmin (Sarah Wijaya)**: Akses penuh analitik holding, approval final, audit log, manajemen user RBAC, dan payroll PPh 21.
+    * 👔 **Line Manager (Hendro Susilo)**: Monitoring tim operasional, approval izin & lembur L1, dan evaluasi matriks kinerja 9-box.
+    * 👷 **Karyawan ESS (Budi Santoso)**: Portal mandiri absensi GPS live, pengajuan cuti/lembur, dan unduh slip gaji terenkripsi.
+* **Showcase 6 Kapabilitas Inti Korporasi**:
+  * Menampilkan 6 pilar keunggulan sistem: Struktur Hierarkis 5-Tingkat, Presensi GPS Geofencing & Roster Shift, Penggajian & PPh 21 TER DJP, Matriks Talenta 9-Box Grid, ESS Portal & Dual-Approval, serta Manajemen Akses Pengguna Terproteksi.
+* **Manajemen Siklus Sesi (Session Lifecycle & Logout Flow)**:
+  * Tombol navigasi *Keluar (Logout)* terpasang permanen pada header aplikasi dan dropdown profil pengguna.
+  * Transisi sesi mulus: Memanggil `handleLogout()` mereset `appState.currentUser = null`, membersihkan cache sesi, dan mengarahkan tampilan kembali ke Halaman Welcome secara instan.
 
 ---
 

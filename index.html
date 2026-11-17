@@ -5,974 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Talenta HRIS - Enterprise Cloud HCM & ESS</title>
   <!-- Tailwind CSS via CDN -->
-  <script src="https://cdn.tailwindcss.com">
-    // --- 14. ENTERPRISE GLOBAL SEARCH (CTRL+K) ---
-    function openGlobalSearch() {
-      openModal('globalSearchModal');
-      setTimeout(() => {
-        const inp = document.getElementById('globalSearchInput');
-        if (inp) { inp.value = ''; inp.focus(); handleGlobalSearch(''); }
-      }, 100);
-    }
-
-    // Keyboard shortcut Ctrl+K
-    window.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        openGlobalSearch();
-      }
-    });
-
-    function handleGlobalSearch(query) {
-      const q = (query || '').toLowerCase().trim();
-      const container = document.getElementById('globalSearchResults');
-      if (!container) return;
-
-      let results = [];
-
-      // Search employees
-      appState.employees.forEach((emp, idx) => {
-        if (!q || emp.name.toLowerCase().includes(q) || emp.nip.toLowerCase().includes(q) || emp.pos.toLowerCase().includes(q) || emp.dept.toLowerCase().includes(q)) {
-          results.push({
-            type: 'Pegawai',
-            title: emp.name,
-            sub: `${emp.nip} • ${emp.pos} (${emp.dept})`,
-            icon: '👤',
-            color: 'bg-indigo-50 text-indigo-700',
-            action: `closeModal('globalSearchModal'); viewEmployeeDetail(${idx});`
-          });
-        }
-      });
-
-      // Search documents
-      appState.documents.forEach((doc, idx) => {
-        if (!q || doc.type.toLowerCase().includes(q) || doc.docNum.toLowerCase().includes(q) || doc.empName.toLowerCase().includes(q)) {
-          results.push({
-            type: 'Dokumen',
-            title: `${doc.type}: ${doc.empName}`,
-            sub: `No: ${doc.docNum} • Terbit: ${doc.date}`,
-            icon: '📄',
-            color: 'bg-emerald-50 text-emerald-700',
-            action: `closeModal('globalSearchModal'); switchTab('documents');`
-          });
-        }
-      });
-
-      // Search assets
-      appState.assets.forEach(ast => {
-        if (!q || ast.name.toLowerCase().includes(q) || ast.sn.toLowerCase().includes(q) || ast.holder.toLowerCase().includes(q)) {
-          results.push({
-            type: 'Aset GA',
-            title: ast.name,
-            sub: `SN: ${ast.sn} • Pemegang: ${ast.holder}`,
-            icon: '💻',
-            color: 'bg-purple-50 text-purple-700',
-            action: `closeModal('globalSearchModal'); switchTab('assets');`
-          });
-        }
-      });
-
-      if (results.length === 0) {
-        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">Tidak ditemukan hasil untuk "${query}". Coba kata kunci NIP, nama, atau jenis surat.</div>`;
-        return;
-      }
-
-      container.innerHTML = results.slice(0, 8).map(r => `
-        <div onclick="${r.action}" class="p-3 hover:bg-slate-50 cursor-pointer rounded-xl flex items-center justify-between transition">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl ${r.color} flex items-center justify-center font-bold text-sm shrink-0">${r.icon}</span>
-            <div>
-              <div class="font-bold text-slate-900 text-xs">${r.title}</div>
-              <div class="text-[11px] text-slate-500">${r.sub}</div>
-            </div>
-          </div>
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.color}">${r.type}</span>
-        </div>
-      `).join('');
-    }
-
-    // --- 15. NOTIFICATION CENTER POPOVER ---
-    function toggleNotificationPopover() {
-      const popover = document.getElementById('notificationPopover');
-      if (popover) popover.classList.toggle('hidden');
-    }
-
-    // --- 16. CONTRACT & PROBATION TOGGLE ---
-    function toggleEmployeeViewMode(mode) {
-      const dirCard = document.getElementById('empTableCard');
-      const contractPanel = document.getElementById('contractMonitoringPanel');
-      const dirBtn = document.getElementById('empViewModeDirBtn');
-      const contractBtn = document.getElementById('empViewModeContractBtn');
-
-      if (mode === 'contract') {
-        if (dirCard) dirCard.classList.add('hidden');
-        if (contractPanel) contractPanel.classList.remove('hidden');
-        if (contractBtn) { contractBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); contractBtn.classList.remove('border-transparent'); }
-        if (dirBtn) { dirBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); dirBtn.classList.add('border-transparent'); }
-      } else {
-        if (dirCard) dirCard.classList.remove('hidden');
-        if (contractPanel) contractPanel.classList.add('hidden');
-        if (dirBtn) { dirBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); dirBtn.classList.remove('border-transparent'); }
-        if (contractBtn) { contractBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); contractBtn.classList.add('border-transparent'); }
-      }
-    }
-
-    function handleContractAction(actionType, empName) {
-      showToast(`Tindakan "${actionType}" untuk ${empName} berhasil diproses. Dokumen otomatis diterbitkan.`);
-    }
-
-    function openShiftSwapModal() {
-      showToast('Form Pengajuan Tukar Shift telah dibuka. Notifikasi dikirimkan ke Supervisor.');
-    }
-
-    // --- 17. OFFICIAL FORMULIR 1721-A1 (BUKTI POTONG PAJAK TER DJP) ---
-    function openForm1721A1(empIdx) {
-      const emp = appState.employees[empIdx] || appState.employees[0];
-      const p = computePayroll(emp);
-      const container = document.getElementById('form1721A1Content');
-      if (!container) return;
-
-      const terInfo = getTERRate(p.gross, emp.ptkp || 'TK/0');
-      const annualGross = p.gross * 12;
-      const annualTax = p.tax * 12;
-
-      container.innerHTML = `
-        <div class="bg-white p-5 rounded-2xl border border-slate-300 shadow-xs space-y-4 font-sans">
-          <!-- Kop DJP -->
-          <div class="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-xl bg-slate-900 text-amber-400 font-black flex items-center justify-center text-xl">DJP</div>
-              <div>
-                <h2 class="font-black text-sm text-slate-900 tracking-tight">KEMENTERIAN KEUANGAN REPUBLIK INDONESIA</h2>
-                <h3 class="text-xs font-bold text-slate-700">DIREKTORAT JENDERAL PAJAK</h3>
-                <p class="text-[10px] text-slate-500">Formulir 1721-A1: Bukti Pemotongan PPh Pasal 21 Pegawai Tetap / Penerima Pensiun</p>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-xs">LEMBAR 1</span>
-              <div class="text-[9px] text-slate-400 font-mono mt-1">Tahun Pajak: 2026</div>
-            </div>
-          </div>
-
-          <!-- Identitas Pemotong Pajak -->
-          <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px]">
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">NPWP Perusahaan Pemotong</span>
-              <div class="font-mono font-bold text-slate-900">01.892.381.9-021.000</div>
-              <div class="font-semibold text-slate-800 mt-0.5">PT NUSANTARA SOLUSI CORPORA (HOLDING)</div>
-            </div>
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">KPP Pratama Terdaftar</span>
-              <div class="font-bold text-slate-900">KPP Pratama Jakarta Sudirman</div>
-              <div class="text-slate-500">Wajib Pajak Badan Terdaftar</div>
-            </div>
-          </div>
-
-          <!-- Identitas Karyawan Penerima Penghasilan -->
-          <div class="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px]">
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">Nama Karyawan</span>
-              <div class="font-bold text-slate-900">${emp.name}</div>
-              <div class="text-[10px] text-slate-500 font-mono">NIP: ${emp.nip}</div>
-            </div>
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">NPWP / NIK KTP</span>
-              <div class="font-mono font-bold text-slate-900">${emp.nik || '3275019283719283'}</div>
-              <div class="text-[10px] text-emerald-700 font-semibold">Valid NIK-NPWP 16 Digit</div>
-            </div>
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">Status PTKP & Skema TER</span>
-              <div class="font-bold text-indigo-700">${emp.ptkp || 'TK/0'} (Kategori ${terInfo.cat})</div>
-              <div class="text-[10px] text-slate-500 font-mono">Tarif Efektif: ${terInfo.rate}%</div>
-            </div>
-          </div>
-
-          <!-- Rincian Penghasilan & Perhitungan PPh 21 -->
-          <div class="space-y-1.5 border border-slate-200 rounded-xl overflow-hidden">
-            <div class="bg-slate-100 p-2 font-bold text-slate-700 flex justify-between text-[11px]">
-              <span>URAIAN PENGHASILAN DAN PENGURANGAN PAJAK (RUPIAH)</span>
-              <span>JUMLAH</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>1. Gaji Pokok / Imbalan Tetap Sebulan</span>
-              <span class="font-mono font-semibold">${formatIDR(emp.basic)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700 bg-slate-50/50">
-              <span>2. Tunjangan Tetap, Jabatan, & Fasilitas</span>
-              <span class="font-mono font-semibold">${formatIDR(emp.allowance)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>3. Upah Lembur (Depnaker Multiplier)</span>
-              <span class="font-mono font-semibold">${formatIDR(emp.overtime || 0)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-900 font-bold bg-slate-100/70 border-t border-slate-200">
-              <span>4. Penghasilan Bruto Sebulan</span>
-              <span class="font-mono text-indigo-700">${formatIDR(p.gross)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>5. Iuran JHT Karyawan (2%)</span>
-              <span class="font-mono text-rose-600">-${formatIDR(p.bpjsTk)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700 bg-slate-50/50">
-              <span>6. Iuran Jaminan Pensiun Karyawan (1% Capped)</span>
-              <span class="font-mono text-rose-600">-${formatIDR(p.bpjsJp)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>7. Iuran BPJS Kesehatan Karyawan (1% Capped)</span>
-              <span class="font-mono text-rose-600">-${formatIDR(p.bpjsKes)}</span>
-            </div>
-            <div class="p-2.5 flex justify-between text-slate-900 font-extrabold bg-indigo-50/80 border-t-2 border-indigo-200">
-              <span>8. PPh Pasal 21 Terutang Sebulan (TER Kategori ${terInfo.cat} @ ${terInfo.rate}%)</span>
-              <span class="font-mono text-rose-700">${formatIDR(p.tax)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-600 text-[10px] bg-slate-50 italic">
-              <span>* Proyeksi PPh 21 Setahun (12 Bulan / SPT Tahunan)</span>
-              <span class="font-mono">${formatIDR(annualTax)}</span>
-            </div>
-          </div>
-
-          <!-- Tanda Tangan & Pengesahan Digital -->
-          <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-16 h-16 bg-slate-100 border border-slate-300 rounded-lg flex items-center justify-center font-mono text-[9px] text-center text-slate-400">
-                QR CODE<br>DJP-TER
-              </div>
-              <div class="text-[10px] text-slate-500">
-                <div>Dokumen elektronik sah tanpa tanda tangan basah.</div>
-                <div class="font-mono text-slate-400">Security Hash: DJP-2026-1721A1-99812A7C</div>
-              </div>
-            </div>
-            <div class="text-right text-[11px]">
-              <div class="text-slate-500">Jakarta, 17 November 2026</div>
-              <div class="font-bold text-slate-900 mt-1">Sarah Wijaya, S.Psi., CHRP</div>
-              <div class="text-[10px] text-slate-400">Head of Human Resources & Corporate Affairs</div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      openModal('form1721A1Modal');
-    }
-
-  
-    // --- 18. ENTERPRISE REPORT ENGINE: ORG CHART & 9-BOX PRINTING ---
-    function printOrgChartReport() {
-      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      
-      document.getElementById('reportModalHeading').innerText = 'Cetak Laporan Struktur Organisasi & Rantai Komando';
-      document.getElementById('repTitle').innerText = 'LAPORAN STRUKTUR ORGANISASI & RANTAI KOMANDO HIERARKIS (5-LEVEL)';
-      document.getElementById('repSubtitle').innerText = `PT Nusantara Solusi Corpora (Holding) & Anak Perusahaan • Multi-Level Hierarchy • Dicetak: ${dateStr}`;
-      document.getElementById('repPrintDate').innerText = dateStr;
-      document.getElementById('repCode').innerText = `ORG-REP/${new Date().getFullYear()}/XI/${Math.floor(Math.random()*899+100)}`;
-
-      const orgData = [
-        { level: "Level 1: BOD", name: "Bambang Soediro, M.B.A.", nip: "DIR-001", pos: "Direktur Utama (President Director / CEO)", entity: "PT Nusantara Solusi Holding", boss: "Pemegang Saham / RUPS", span: "2 Direktur" },
-        { level: "Level 2: Directorate", name: "Sarah Wijaya, S.Psi., CHRP", nip: "EMP-003", pos: "Head of Human Resources & Corporate Affairs", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "2 Divisi (HR & GA)" },
-        { level: "Level 2: Directorate", name: "Ir. Bambang Hermanto", nip: "DIR-002", pos: "Head of Operations & Supply Chain", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "3 Area Site / Fleet" },
-        { level: "Level 3: Manager", name: "Hendro Susilo, S.T.", nip: "EMP-002", pos: "Operations Manager (Site & Fleet Logistics)", entity: "PT Logistik Express", boss: "Ir. Bambang Hermanto", span: "4 Staf Operasional" },
-        { level: "Level 3: Manager", name: "Maya Putri, S.I.Kom.", nip: "EMP-009", pos: "HR Operations & Talent Acquisition Manager", entity: "PT Nusantara Solusi Holding", boss: "Sarah Wijaya", span: "3 Staf HRD" },
-        { level: "Level 3: Manager", name: "Dian Lestari, S.E., Ak.", nip: "EMP-004", pos: "Finance & Payroll Accounting Manager", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "3 Staf Finance" },
-        { level: "Level 4: Supervisor", name: "Ahmad Fauzi", nip: "EMP-2024-0095", pos: "Field Operations & Warehouse Supervisor", entity: "PT Logistik Express (Site Cikarang)", boss: "Hendro Susilo, S.T.", span: "4 Staf Lapangan" },
-        { level: "Level 4: Supervisor", name: "Rizky Pratama, S.Kom.", nip: "EMP-2025-0119", pos: "Lead IT Infrastructure & Systems", entity: "PT Retail Maju (Surabaya)", boss: "Anton Wijoyo", span: "2 Staf IT" },
-        { level: "Level 5: Senior Staff", name: "Budi Santoso", nip: "EMP-2024-0082", pos: "Senior Field Technician (Mechanical/Electrical)", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo / Ahmad Fauzi", span: "Pelaksana Teknis Mandiri" },
-        { level: "Level 5: Staff", name: "Fajar Nugraha", nip: "EMP-2024-0067", pos: "Field Quality Inspector (QC Operations)", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo, S.T.", span: "Pelaksana Teknis" },
-        { level: "Level 5: Staff", name: "Hadi Purnomo", nip: "EMP-2024-0078", pos: "Heavy Fleet & Logistics Driver", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo, S.T.", span: "Pelaksana Armada" },
-        { level: "Level 5: Staff", name: "Siti Nurhaliza", nip: "EMP-2024-0091", pos: "Warehouse Staff & GA Consumables", entity: "PT Logistik Express (Cikarang)", boss: "Ahmad Fauzi", span: "Pelaksana Logistik" }
-      ];
-
-      let tableHtml = `
-        <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Total Personel</span><span class="text-sm font-black text-slate-900">1,248 Karyawan</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Rantai Komando</span><span class="text-sm font-black text-indigo-700">5 Tingkat Hierarki</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Jumlah Divisi</span><span class="text-sm font-black text-slate-900">5 Divisi Utama</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Rata-rata Span of Control</span><span class="text-sm font-black text-emerald-700">1 : 4 (Ideal)</span></div>
-        </div>
-
-        <table class="w-full text-left text-xs border border-slate-300">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
-            <tr>
-              <th class="p-2 border-r border-slate-300 text-center w-10">No</th>
-              <th class="p-2 border-r border-slate-300">Tingkat Hierarki</th>
-              <th class="p-2 border-r border-slate-300">Nama Pejabat & NIP</th>
-              <th class="p-2 border-r border-slate-300">Posisi / Jabatan Struktural</th>
-              <th class="p-2 border-r border-slate-300">Entitas & Lokasi</th>
-              <th class="p-2 border-r border-slate-300">Atasan Langsung (Pelaporan)</th>
-              <th class="p-2 text-center">Span of Control</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-      `;
-
-      orgData.forEach((row, i) => {
-        const bgCls = (i % 2 === 0) ? 'bg-white' : 'bg-slate-50/60';
-        tableHtml += `
-          <tr class="${bgCls} hover:bg-indigo-50/40">
-            <td class="p-2 border-r border-slate-200 text-center font-bold text-slate-500">${i+1}</td>
-            <td class="p-2 border-r border-slate-200 font-bold text-indigo-900">${row.level}</td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-bold text-slate-900">${row.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${row.nip}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200 font-semibold text-slate-800">${row.pos}</td>
-            <td class="p-2 border-r border-slate-200 text-[11px] text-slate-600">${row.entity}</td>
-            <td class="p-2 border-r border-slate-200 text-[11px] text-slate-600">${row.boss}</td>
-            <td class="p-2 text-center font-semibold text-indigo-700 text-[11px]">${row.span}</td>
-          </tr>
-        `;
-      });
-
-      tableHtml += `</tbody></table>`;
-      document.getElementById('repContentTableBox').innerHTML = tableHtml;
-      openModal('reportModal');
-    }
-
-    function printNineBoxReport() {
-      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      
-      document.getElementById('reportModalHeading').innerText = 'Cetak Laporan Matriks Talenta (9-Box Grid)';
-      document.getElementById('repTitle').innerText = 'LAPORAN MATRIKS TALENTA (9-BOX GRID) & RENCANA SUKSESI KEPEMIMPINAN';
-      document.getElementById('repSubtitle').innerText = `Pemetaan Potensi vs Kinerja Modal Insan Korporasi • Siklus Semester II - 2026 • Dicetak: ${dateStr}`;
-      document.getElementById('repPrintDate').innerText = dateStr;
-      document.getElementById('repCode').innerText = `TALENT-9BOX/${new Date().getFullYear()}/S2/${Math.floor(Math.random()*899+100)}`;
-
-      let star = 0, high = 0, core = 0, coach = 0;
-      appState.employees.forEach(emp => {
-        const pos = getNineBoxPosition(emp.kpi || 85, emp.pot || 80);
-        if (pos.box === 9) star++;
-        else if (pos.box === 6 || pos.box === 8) high++;
-        else if (pos.box === 3 || pos.box === 5) core++;
-        else if (pos.box === 1 || pos.box === 4 || pos.box === 7) coach++;
-      });
-
-      let tableHtml = `
-        <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-          <div class="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
-            <span class="text-[9px] text-emerald-800 font-bold uppercase block">🌟 Star / Future Leaders</span>
-            <span class="text-lg font-black text-emerald-950">${star} Pegawai (17%)</span>
-            <span class="text-[9px] text-emerald-700 block">Kandidat Promosi C-Level</span>
-          </div>
-          <div class="p-2 bg-blue-50 rounded-lg border border-blue-200">
-            <span class="text-[9px] text-blue-800 font-bold uppercase block">🏆 High Performers</span>
-            <span class="text-lg font-black text-blue-950">${high} Pegawai (33%)</span>
-            <span class="text-[9px] text-blue-700 block">Kandidat Suksesi Siap Maju</span>
-          </div>
-          <div class="p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-            <span class="text-[9px] text-indigo-800 font-bold uppercase block">🎯 Core Contributors</span>
-            <span class="text-lg font-black text-indigo-950">${core} Pegawai (33%)</span>
-            <span class="text-[9px] text-indigo-700 block">Pilar Utama Operasional</span>
-          </div>
-          <div class="p-2 bg-amber-50 rounded-lg border border-amber-200">
-            <span class="text-[9px] text-amber-800 font-bold uppercase block">⚠️ Needs Coaching</span>
-            <span class="text-lg font-black text-amber-950">${coach} Pegawai (17%)</span>
-            <span class="text-[9px] text-amber-700 block">Perlu Mentoring & Evaluasi PIP</span>
-          </div>
-        </div>
-
-        <h4 class="font-extrabold text-xs text-slate-800 mb-2 uppercase">1. Rekapitulasi Pemetaan Matriks Talenta Seluruh Pegawai</h4>
-        <table class="w-full text-left text-xs border border-slate-300 mb-6">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
-            <tr>
-              <th class="p-2 border-r border-slate-300 text-center w-10">No</th>
-              <th class="p-2 border-r border-slate-300">Pegawai & NIP</th>
-              <th class="p-2 border-r border-slate-300">Divisi & Jabatan</th>
-              <th class="p-2 border-r border-slate-300 text-center">Skor Kinerja (X)</th>
-              <th class="p-2 border-r border-slate-300 text-center">Skor Potensi (Y)</th>
-              <th class="p-2 border-r border-slate-300">Kuadran Kotak Talenta</th>
-              <th class="p-2">Rekomendasi Suksesi & Pengembangan HR</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-      `;
-
-      appState.employees.forEach((emp, i) => {
-        const bgCls = (i % 2 === 0) ? 'bg-white' : 'bg-slate-50/60';
-        const pos = getNineBoxPosition(emp.kpi || 85, emp.pot || 80);
-        let badgeColor = 'bg-slate-100 text-slate-700';
-        if (pos.box === 9) badgeColor = 'bg-emerald-100 text-emerald-800 font-bold';
-        else if (pos.box === 6 || pos.box === 8) badgeColor = 'bg-blue-100 text-blue-800 font-bold';
-        else if (pos.box === 3 || pos.box === 5) badgeColor = 'bg-indigo-100 text-indigo-800 font-bold';
-        else if (pos.box === 1 || pos.box === 4 || pos.box === 7) badgeColor = 'bg-amber-100 text-amber-800 font-bold';
-
-        tableHtml += `
-          <tr class="${bgCls} hover:bg-purple-50/40">
-            <td class="p-2 border-r border-slate-200 text-center font-bold text-slate-500">${i+1}</td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-bold text-slate-900">${emp.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${emp.nip}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-semibold text-slate-800">${emp.pos}</div>
-              <div class="text-[10px] text-slate-500">${emp.dept}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200 text-center font-mono font-bold text-indigo-700">${emp.kpi}%</td>
-            <td class="p-2 border-r border-slate-200 text-center font-mono font-bold text-purple-700">${emp.pot}%</td>
-            <td class="p-2 border-r border-slate-200">
-              <span class="px-2 py-0.5 rounded text-[10px] ${badgeColor}">Box ${pos.box}: ${pos.title}</span>
-            </td>
-            <td class="p-2 text-slate-700 text-[11px]">${emp.rec || 'Pengembangan Kompetensi Berkala'}</td>
-          </tr>
-        `;
-      });
-
-      tableHtml += `
-          </tbody>
-        </table>
-
-        <h4 class="font-extrabold text-xs text-slate-800 mb-2 uppercase">2. Rencana Suksesi Jabatan Kunci (Key Positions Succession Pipeline)</h4>
-        <table class="w-full text-left text-xs border border-slate-300">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
-            <tr>
-              <th class="p-2 border-r border-slate-300">Posisi Jabatan Kritis</th>
-              <th class="p-2 border-r border-slate-300">Pejabat Saat Ini</th>
-              <th class="p-2 border-r border-slate-300">Kandidat Suksesor Teridentifikasi</th>
-              <th class="p-2 border-r border-slate-300">Posisi Kotak Talenta</th>
-              <th class="p-2">Status Kesiapan Suksesi</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-            <tr class="bg-white">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Head of Operations & Logistics</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Ir. Bambang Hermanto</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Hendro Susilo, S.T.</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Box 9: Star</span></td>
-              <td class="p-2 font-semibold text-emerald-700">Siap Sekarang (Ready Now)</td>
-            </tr>
-            <tr class="bg-slate-50/60">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Operations Manager (Cikarang Hub)</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Hendro Susilo, S.T.</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Budi Santoso</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">Box 6: High Performer</span></td>
-              <td class="p-2 font-semibold text-blue-700">Siap 1-2 Tahun (Talent Pipeline)</td>
-            </tr>
-            <tr class="bg-white">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Lead Field Operations Supervisor</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Ahmad Fauzi</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Fajar Nugraha</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">Box 8: Growth Potential</span></td>
-              <td class="p-2 font-semibold text-purple-700">Siap 1-2 Tahun (Dalam Mentoring)</td>
-            </tr>
-            <tr class="bg-slate-50/60">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Head of Human Resources</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Sarah Wijaya, S.Psi.</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Maya Putri, S.I.Kom.</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Box 9: Star</span></td>
-              <td class="p-2 font-semibold text-emerald-700">Siap Sekarang (Ready Now)</td>
-            </tr>
-          </tbody>
-        </table>
-      `;
-
-      document.getElementById('repContentTableBox').innerHTML = tableHtml;
-      openModal('reportModal');
-    }
-
-    // Comprehensive Router Dispatcher for all print buttons
-    function openPrintReportModal(reportType) {
-      const type = (reportType || '').toLowerCase();
-      if (type.includes('9-box') || type.includes('talenta') || type.includes('talent')) {
-        printNineBoxReport();
-      } else if (type.includes('organisasi') || type.includes('org') || type.includes('struktur')) {
-        printOrgChartReport();
-      } else if (type.includes('kinerja') || type.includes('perf')) {
-        printPerformanceReport();
-      } else if (type.includes('gaji') || type.includes('payroll')) {
-        printPayrollReport();
-      } else if (type.includes('absen') || type.includes('presensi')) {
-        printAttendanceReport();
-      } else if (type.includes('aset') || type.includes('stok') || type.includes('inventory')) {
-        printInventoryReport();
-      } else if (type.includes('approval') || type.includes('setuju')) {
-        printApprovalReport();
-      } else {
-        printEmployeeReport();
-      }
-    }
-
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-    // --- 14. ENTERPRISE GLOBAL SEARCH (CTRL+K) ---
-    function openGlobalSearch() {
-      openModal('globalSearchModal');
-      setTimeout(() => {
-        const inp = document.getElementById('globalSearchInput');
-        if (inp) { inp.value = ''; inp.focus(); handleGlobalSearch(''); }
-      }, 100);
-    }
-
-    // Keyboard shortcut Ctrl+K
-    window.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        openGlobalSearch();
-      }
-    });
-
-    function handleGlobalSearch(query) {
-      const q = (query || '').toLowerCase().trim();
-      const container = document.getElementById('globalSearchResults');
-      if (!container) return;
-
-      let results = [];
-
-      // Search employees
-      appState.employees.forEach((emp, idx) => {
-        if (!q || emp.name.toLowerCase().includes(q) || emp.nip.toLowerCase().includes(q) || emp.pos.toLowerCase().includes(q) || emp.dept.toLowerCase().includes(q)) {
-          results.push({
-            type: 'Pegawai',
-            title: emp.name,
-            sub: `${emp.nip} • ${emp.pos} (${emp.dept})`,
-            icon: '👤',
-            color: 'bg-indigo-50 text-indigo-700',
-            action: `closeModal('globalSearchModal'); viewEmployeeDetail(${idx});`
-          });
-        }
-      });
-
-      // Search documents
-      appState.documents.forEach((doc, idx) => {
-        if (!q || doc.type.toLowerCase().includes(q) || doc.docNum.toLowerCase().includes(q) || doc.empName.toLowerCase().includes(q)) {
-          results.push({
-            type: 'Dokumen',
-            title: `${doc.type}: ${doc.empName}`,
-            sub: `No: ${doc.docNum} • Terbit: ${doc.date}`,
-            icon: '📄',
-            color: 'bg-emerald-50 text-emerald-700',
-            action: `closeModal('globalSearchModal'); switchTab('documents');`
-          });
-        }
-      });
-
-      // Search assets
-      appState.assets.forEach(ast => {
-        if (!q || ast.name.toLowerCase().includes(q) || ast.sn.toLowerCase().includes(q) || ast.holder.toLowerCase().includes(q)) {
-          results.push({
-            type: 'Aset GA',
-            title: ast.name,
-            sub: `SN: ${ast.sn} • Pemegang: ${ast.holder}`,
-            icon: '💻',
-            color: 'bg-purple-50 text-purple-700',
-            action: `closeModal('globalSearchModal'); switchTab('assets');`
-          });
-        }
-      });
-
-      if (results.length === 0) {
-        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">Tidak ditemukan hasil untuk "${query}". Coba kata kunci NIP, nama, atau jenis surat.</div>`;
-        return;
-      }
-
-      container.innerHTML = results.slice(0, 8).map(r => `
-        <div onclick="${r.action}" class="p-3 hover:bg-slate-50 cursor-pointer rounded-xl flex items-center justify-between transition">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl ${r.color} flex items-center justify-center font-bold text-sm shrink-0">${r.icon}</span>
-            <div>
-              <div class="font-bold text-slate-900 text-xs">${r.title}</div>
-              <div class="text-[11px] text-slate-500">${r.sub}</div>
-            </div>
-          </div>
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.color}">${r.type}</span>
-        </div>
-      `).join('');
-    }
-
-    // --- 15. NOTIFICATION CENTER POPOVER ---
-    function toggleNotificationPopover() {
-      const popover = document.getElementById('notificationPopover');
-      if (popover) popover.classList.toggle('hidden');
-    }
-
-    // --- 16. CONTRACT & PROBATION TOGGLE ---
-    function toggleEmployeeViewMode(mode) {
-      const dirCard = document.getElementById('empTableCard');
-      const contractPanel = document.getElementById('contractMonitoringPanel');
-      const dirBtn = document.getElementById('empViewModeDirBtn');
-      const contractBtn = document.getElementById('empViewModeContractBtn');
-
-      if (mode === 'contract') {
-        if (dirCard) dirCard.classList.add('hidden');
-        if (contractPanel) contractPanel.classList.remove('hidden');
-        if (contractBtn) { contractBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); contractBtn.classList.remove('border-transparent'); }
-        if (dirBtn) { dirBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); dirBtn.classList.add('border-transparent'); }
-      } else {
-        if (dirCard) dirCard.classList.remove('hidden');
-        if (contractPanel) contractPanel.classList.add('hidden');
-        if (dirBtn) { dirBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); dirBtn.classList.remove('border-transparent'); }
-        if (contractBtn) { contractBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-indigo-200'); contractBtn.classList.add('border-transparent'); }
-      }
-    }
-
-    function handleContractAction(actionType, empName) {
-      showToast(`Tindakan "${actionType}" untuk ${empName} berhasil diproses. Dokumen otomatis diterbitkan.`);
-    }
-
-    function openShiftSwapModal() {
-      showToast('Form Pengajuan Tukar Shift telah dibuka. Notifikasi dikirimkan ke Supervisor.');
-    }
-
-    // --- 17. OFFICIAL FORMULIR 1721-A1 (BUKTI POTONG PAJAK TER DJP) ---
-    function openForm1721A1(empIdx) {
-      const emp = appState.employees[empIdx] || appState.employees[0];
-      const p = computePayroll(emp);
-      const container = document.getElementById('form1721A1Content');
-      if (!container) return;
-
-      const terInfo = getTERRate(p.gross, emp.ptkp || 'TK/0');
-      const annualGross = p.gross * 12;
-      const annualTax = p.tax * 12;
-
-      container.innerHTML = `
-        <div class="bg-white p-5 rounded-2xl border border-slate-300 shadow-xs space-y-4 font-sans">
-          <!-- Kop DJP -->
-          <div class="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-xl bg-slate-900 text-amber-400 font-black flex items-center justify-center text-xl">DJP</div>
-              <div>
-                <h2 class="font-black text-sm text-slate-900 tracking-tight">KEMENTERIAN KEUANGAN REPUBLIK INDONESIA</h2>
-                <h3 class="text-xs font-bold text-slate-700">DIREKTORAT JENDERAL PAJAK</h3>
-                <p class="text-[10px] text-slate-500">Formulir 1721-A1: Bukti Pemotongan PPh Pasal 21 Pegawai Tetap / Penerima Pensiun</p>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-xs">LEMBAR 1</span>
-              <div class="text-[9px] text-slate-400 font-mono mt-1">Tahun Pajak: 2026</div>
-            </div>
-          </div>
-
-          <!-- Identitas Pemotong Pajak -->
-          <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px]">
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">NPWP Perusahaan Pemotong</span>
-              <div class="font-mono font-bold text-slate-900">01.892.381.9-021.000</div>
-              <div class="font-semibold text-slate-800 mt-0.5">PT NUSANTARA SOLUSI CORPORA (HOLDING)</div>
-            </div>
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">KPP Pratama Terdaftar</span>
-              <div class="font-bold text-slate-900">KPP Pratama Jakarta Sudirman</div>
-              <div class="text-slate-500">Wajib Pajak Badan Terdaftar</div>
-            </div>
-          </div>
-
-          <!-- Identitas Karyawan Penerima Penghasilan -->
-          <div class="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px]">
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">Nama Karyawan</span>
-              <div class="font-bold text-slate-900">${emp.name}</div>
-              <div class="text-[10px] text-slate-500 font-mono">NIP: ${emp.nip}</div>
-            </div>
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">NPWP / NIK KTP</span>
-              <div class="font-mono font-bold text-slate-900">${emp.nik || '3275019283719283'}</div>
-              <div class="text-[10px] text-emerald-700 font-semibold">Valid NIK-NPWP 16 Digit</div>
-            </div>
-            <div>
-              <span class="font-bold text-slate-500 text-[10px] uppercase block">Status PTKP & Skema TER</span>
-              <div class="font-bold text-indigo-700">${emp.ptkp || 'TK/0'} (Kategori ${terInfo.cat})</div>
-              <div class="text-[10px] text-slate-500 font-mono">Tarif Efektif: ${terInfo.rate}%</div>
-            </div>
-          </div>
-
-          <!-- Rincian Penghasilan & Perhitungan PPh 21 -->
-          <div class="space-y-1.5 border border-slate-200 rounded-xl overflow-hidden">
-            <div class="bg-slate-100 p-2 font-bold text-slate-700 flex justify-between text-[11px]">
-              <span>URAIAN PENGHASILAN DAN PENGURANGAN PAJAK (RUPIAH)</span>
-              <span>JUMLAH</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>1. Gaji Pokok / Imbalan Tetap Sebulan</span>
-              <span class="font-mono font-semibold">${formatIDR(emp.basic)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700 bg-slate-50/50">
-              <span>2. Tunjangan Tetap, Jabatan, & Fasilitas</span>
-              <span class="font-mono font-semibold">${formatIDR(emp.allowance)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>3. Upah Lembur (Depnaker Multiplier)</span>
-              <span class="font-mono font-semibold">${formatIDR(emp.overtime || 0)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-900 font-bold bg-slate-100/70 border-t border-slate-200">
-              <span>4. Penghasilan Bruto Sebulan</span>
-              <span class="font-mono text-indigo-700">${formatIDR(p.gross)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>5. Iuran JHT Karyawan (2%)</span>
-              <span class="font-mono text-rose-600">-${formatIDR(p.bpjsTk)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700 bg-slate-50/50">
-              <span>6. Iuran Jaminan Pensiun Karyawan (1% Capped)</span>
-              <span class="font-mono text-rose-600">-${formatIDR(p.bpjsJp)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-700">
-              <span>7. Iuran BPJS Kesehatan Karyawan (1% Capped)</span>
-              <span class="font-mono text-rose-600">-${formatIDR(p.bpjsKes)}</span>
-            </div>
-            <div class="p-2.5 flex justify-between text-slate-900 font-extrabold bg-indigo-50/80 border-t-2 border-indigo-200">
-              <span>8. PPh Pasal 21 Terutang Sebulan (TER Kategori ${terInfo.cat} @ ${terInfo.rate}%)</span>
-              <span class="font-mono text-rose-700">${formatIDR(p.tax)}</span>
-            </div>
-            <div class="p-2 flex justify-between text-slate-600 text-[10px] bg-slate-50 italic">
-              <span>* Proyeksi PPh 21 Setahun (12 Bulan / SPT Tahunan)</span>
-              <span class="font-mono">${formatIDR(annualTax)}</span>
-            </div>
-          </div>
-
-          <!-- Tanda Tangan & Pengesahan Digital -->
-          <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-16 h-16 bg-slate-100 border border-slate-300 rounded-lg flex items-center justify-center font-mono text-[9px] text-center text-slate-400">
-                QR CODE<br>DJP-TER
-              </div>
-              <div class="text-[10px] text-slate-500">
-                <div>Dokumen elektronik sah tanpa tanda tangan basah.</div>
-                <div class="font-mono text-slate-400">Security Hash: DJP-2026-1721A1-99812A7C</div>
-              </div>
-            </div>
-            <div class="text-right text-[11px]">
-              <div class="text-slate-500">Jakarta, 17 November 2026</div>
-              <div class="font-bold text-slate-900 mt-1">Sarah Wijaya, S.Psi., CHRP</div>
-              <div class="text-[10px] text-slate-400">Head of Human Resources & Corporate Affairs</div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      openModal('form1721A1Modal');
-    }
-
-  
-    // --- 18. ENTERPRISE REPORT ENGINE: ORG CHART & 9-BOX PRINTING ---
-    function printOrgChartReport() {
-      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      
-      document.getElementById('reportModalHeading').innerText = 'Cetak Laporan Struktur Organisasi & Rantai Komando';
-      document.getElementById('repTitle').innerText = 'LAPORAN STRUKTUR ORGANISASI & RANTAI KOMANDO HIERARKIS (5-LEVEL)';
-      document.getElementById('repSubtitle').innerText = `PT Nusantara Solusi Corpora (Holding) & Anak Perusahaan • Multi-Level Hierarchy • Dicetak: ${dateStr}`;
-      document.getElementById('repPrintDate').innerText = dateStr;
-      document.getElementById('repCode').innerText = `ORG-REP/${new Date().getFullYear()}/XI/${Math.floor(Math.random()*899+100)}`;
-
-      const orgData = [
-        { level: "Level 1: BOD", name: "Bambang Soediro, M.B.A.", nip: "DIR-001", pos: "Direktur Utama (President Director / CEO)", entity: "PT Nusantara Solusi Holding", boss: "Pemegang Saham / RUPS", span: "2 Direktur" },
-        { level: "Level 2: Directorate", name: "Sarah Wijaya, S.Psi., CHRP", nip: "EMP-003", pos: "Head of Human Resources & Corporate Affairs", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "2 Divisi (HR & GA)" },
-        { level: "Level 2: Directorate", name: "Ir. Bambang Hermanto", nip: "DIR-002", pos: "Head of Operations & Supply Chain", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "3 Area Site / Fleet" },
-        { level: "Level 3: Manager", name: "Hendro Susilo, S.T.", nip: "EMP-002", pos: "Operations Manager (Site & Fleet Logistics)", entity: "PT Logistik Express", boss: "Ir. Bambang Hermanto", span: "4 Staf Operasional" },
-        { level: "Level 3: Manager", name: "Maya Putri, S.I.Kom.", nip: "EMP-009", pos: "HR Operations & Talent Acquisition Manager", entity: "PT Nusantara Solusi Holding", boss: "Sarah Wijaya", span: "3 Staf HRD" },
-        { level: "Level 3: Manager", name: "Dian Lestari, S.E., Ak.", nip: "EMP-004", pos: "Finance & Payroll Accounting Manager", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "3 Staf Finance" },
-        { level: "Level 4: Supervisor", name: "Ahmad Fauzi", nip: "EMP-2024-0095", pos: "Field Operations & Warehouse Supervisor", entity: "PT Logistik Express (Site Cikarang)", boss: "Hendro Susilo, S.T.", span: "4 Staf Lapangan" },
-        { level: "Level 4: Supervisor", name: "Rizky Pratama, S.Kom.", nip: "EMP-2025-0119", pos: "Lead IT Infrastructure & Systems", entity: "PT Retail Maju (Surabaya)", boss: "Anton Wijoyo", span: "2 Staf IT" },
-        { level: "Level 5: Senior Staff", name: "Budi Santoso", nip: "EMP-2024-0082", pos: "Senior Field Technician (Mechanical/Electrical)", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo / Ahmad Fauzi", span: "Pelaksana Teknis Mandiri" },
-        { level: "Level 5: Staff", name: "Fajar Nugraha", nip: "EMP-2024-0067", pos: "Field Quality Inspector (QC Operations)", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo, S.T.", span: "Pelaksana Teknis" },
-        { level: "Level 5: Staff", name: "Hadi Purnomo", nip: "EMP-2024-0078", pos: "Heavy Fleet & Logistics Driver", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo, S.T.", span: "Pelaksana Armada" },
-        { level: "Level 5: Staff", name: "Siti Nurhaliza", nip: "EMP-2024-0091", pos: "Warehouse Staff & GA Consumables", entity: "PT Logistik Express (Cikarang)", boss: "Ahmad Fauzi", span: "Pelaksana Logistik" }
-      ];
-
-      let tableHtml = `
-        <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Total Personel</span><span class="text-sm font-black text-slate-900">1,248 Karyawan</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Rantai Komando</span><span class="text-sm font-black text-indigo-700">5 Tingkat Hierarki</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Jumlah Divisi</span><span class="text-sm font-black text-slate-900">5 Divisi Utama</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Rata-rata Span of Control</span><span class="text-sm font-black text-emerald-700">1 : 4 (Ideal)</span></div>
-        </div>
-
-        <table class="w-full text-left text-xs border border-slate-300">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
-            <tr>
-              <th class="p-2 border-r border-slate-300 text-center w-10">No</th>
-              <th class="p-2 border-r border-slate-300">Tingkat Hierarki</th>
-              <th class="p-2 border-r border-slate-300">Nama Pejabat & NIP</th>
-              <th class="p-2 border-r border-slate-300">Posisi / Jabatan Struktural</th>
-              <th class="p-2 border-r border-slate-300">Entitas & Lokasi</th>
-              <th class="p-2 border-r border-slate-300">Atasan Langsung (Pelaporan)</th>
-              <th class="p-2 text-center">Span of Control</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-      `;
-
-      orgData.forEach((row, i) => {
-        const bgCls = (i % 2 === 0) ? 'bg-white' : 'bg-slate-50/60';
-        tableHtml += `
-          <tr class="${bgCls} hover:bg-indigo-50/40">
-            <td class="p-2 border-r border-slate-200 text-center font-bold text-slate-500">${i+1}</td>
-            <td class="p-2 border-r border-slate-200 font-bold text-indigo-900">${row.level}</td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-bold text-slate-900">${row.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${row.nip}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200 font-semibold text-slate-800">${row.pos}</td>
-            <td class="p-2 border-r border-slate-200 text-[11px] text-slate-600">${row.entity}</td>
-            <td class="p-2 border-r border-slate-200 text-[11px] text-slate-600">${row.boss}</td>
-            <td class="p-2 text-center font-semibold text-indigo-700 text-[11px]">${row.span}</td>
-          </tr>
-        `;
-      });
-
-      tableHtml += `</tbody></table>`;
-      document.getElementById('repContentTableBox').innerHTML = tableHtml;
-      openModal('reportModal');
-    }
-
-    function printNineBoxReport() {
-      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      
-      document.getElementById('reportModalHeading').innerText = 'Cetak Laporan Matriks Talenta (9-Box Grid)';
-      document.getElementById('repTitle').innerText = 'LAPORAN MATRIKS TALENTA (9-BOX GRID) & RENCANA SUKSESI KEPEMIMPINAN';
-      document.getElementById('repSubtitle').innerText = `Pemetaan Potensi vs Kinerja Modal Insan Korporasi • Siklus Semester II - 2026 • Dicetak: ${dateStr}`;
-      document.getElementById('repPrintDate').innerText = dateStr;
-      document.getElementById('repCode').innerText = `TALENT-9BOX/${new Date().getFullYear()}/S2/${Math.floor(Math.random()*899+100)}`;
-
-      let star = 0, high = 0, core = 0, coach = 0;
-      appState.employees.forEach(emp => {
-        const pos = getNineBoxPosition(emp.kpi || 85, emp.pot || 80);
-        if (pos.box === 9) star++;
-        else if (pos.box === 6 || pos.box === 8) high++;
-        else if (pos.box === 3 || pos.box === 5) core++;
-        else if (pos.box === 1 || pos.box === 4 || pos.box === 7) coach++;
-      });
-
-      let tableHtml = `
-        <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-          <div class="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
-            <span class="text-[9px] text-emerald-800 font-bold uppercase block">🌟 Star / Future Leaders</span>
-            <span class="text-lg font-black text-emerald-950">${star} Pegawai (17%)</span>
-            <span class="text-[9px] text-emerald-700 block">Kandidat Promosi C-Level</span>
-          </div>
-          <div class="p-2 bg-blue-50 rounded-lg border border-blue-200">
-            <span class="text-[9px] text-blue-800 font-bold uppercase block">🏆 High Performers</span>
-            <span class="text-lg font-black text-blue-950">${high} Pegawai (33%)</span>
-            <span class="text-[9px] text-blue-700 block">Kandidat Suksesi Siap Maju</span>
-          </div>
-          <div class="p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-            <span class="text-[9px] text-indigo-800 font-bold uppercase block">🎯 Core Contributors</span>
-            <span class="text-lg font-black text-indigo-950">${core} Pegawai (33%)</span>
-            <span class="text-[9px] text-indigo-700 block">Pilar Utama Operasional</span>
-          </div>
-          <div class="p-2 bg-amber-50 rounded-lg border border-amber-200">
-            <span class="text-[9px] text-amber-800 font-bold uppercase block">⚠️ Needs Coaching</span>
-            <span class="text-lg font-black text-amber-950">${coach} Pegawai (17%)</span>
-            <span class="text-[9px] text-amber-700 block">Perlu Mentoring & Evaluasi PIP</span>
-          </div>
-        </div>
-
-        <h4 class="font-extrabold text-xs text-slate-800 mb-2 uppercase">1. Rekapitulasi Pemetaan Matriks Talenta Seluruh Pegawai</h4>
-        <table class="w-full text-left text-xs border border-slate-300 mb-6">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
-            <tr>
-              <th class="p-2 border-r border-slate-300 text-center w-10">No</th>
-              <th class="p-2 border-r border-slate-300">Pegawai & NIP</th>
-              <th class="p-2 border-r border-slate-300">Divisi & Jabatan</th>
-              <th class="p-2 border-r border-slate-300 text-center">Skor Kinerja (X)</th>
-              <th class="p-2 border-r border-slate-300 text-center">Skor Potensi (Y)</th>
-              <th class="p-2 border-r border-slate-300">Kuadran Kotak Talenta</th>
-              <th class="p-2">Rekomendasi Suksesi & Pengembangan HR</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-      `;
-
-      appState.employees.forEach((emp, i) => {
-        const bgCls = (i % 2 === 0) ? 'bg-white' : 'bg-slate-50/60';
-        const pos = getNineBoxPosition(emp.kpi || 85, emp.pot || 80);
-        let badgeColor = 'bg-slate-100 text-slate-700';
-        if (pos.box === 9) badgeColor = 'bg-emerald-100 text-emerald-800 font-bold';
-        else if (pos.box === 6 || pos.box === 8) badgeColor = 'bg-blue-100 text-blue-800 font-bold';
-        else if (pos.box === 3 || pos.box === 5) badgeColor = 'bg-indigo-100 text-indigo-800 font-bold';
-        else if (pos.box === 1 || pos.box === 4 || pos.box === 7) badgeColor = 'bg-amber-100 text-amber-800 font-bold';
-
-        tableHtml += `
-          <tr class="${bgCls} hover:bg-purple-50/40">
-            <td class="p-2 border-r border-slate-200 text-center font-bold text-slate-500">${i+1}</td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-bold text-slate-900">${emp.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${emp.nip}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-semibold text-slate-800">${emp.pos}</div>
-              <div class="text-[10px] text-slate-500">${emp.dept}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200 text-center font-mono font-bold text-indigo-700">${emp.kpi}%</td>
-            <td class="p-2 border-r border-slate-200 text-center font-mono font-bold text-purple-700">${emp.pot}%</td>
-            <td class="p-2 border-r border-slate-200">
-              <span class="px-2 py-0.5 rounded text-[10px] ${badgeColor}">Box ${pos.box}: ${pos.title}</span>
-            </td>
-            <td class="p-2 text-slate-700 text-[11px]">${emp.rec || 'Pengembangan Kompetensi Berkala'}</td>
-          </tr>
-        `;
-      });
-
-      tableHtml += `
-          </tbody>
-        </table>
-
-        <h4 class="font-extrabold text-xs text-slate-800 mb-2 uppercase">2. Rencana Suksesi Jabatan Kunci (Key Positions Succession Pipeline)</h4>
-        <table class="w-full text-left text-xs border border-slate-300">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
-            <tr>
-              <th class="p-2 border-r border-slate-300">Posisi Jabatan Kritis</th>
-              <th class="p-2 border-r border-slate-300">Pejabat Saat Ini</th>
-              <th class="p-2 border-r border-slate-300">Kandidat Suksesor Teridentifikasi</th>
-              <th class="p-2 border-r border-slate-300">Posisi Kotak Talenta</th>
-              <th class="p-2">Status Kesiapan Suksesi</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-            <tr class="bg-white">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Head of Operations & Logistics</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Ir. Bambang Hermanto</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Hendro Susilo, S.T.</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Box 9: Star</span></td>
-              <td class="p-2 font-semibold text-emerald-700">Siap Sekarang (Ready Now)</td>
-            </tr>
-            <tr class="bg-slate-50/60">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Operations Manager (Cikarang Hub)</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Hendro Susilo, S.T.</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Budi Santoso</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">Box 6: High Performer</span></td>
-              <td class="p-2 font-semibold text-blue-700">Siap 1-2 Tahun (Talent Pipeline)</td>
-            </tr>
-            <tr class="bg-white">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Lead Field Operations Supervisor</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Ahmad Fauzi</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Fajar Nugraha</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">Box 8: Growth Potential</span></td>
-              <td class="p-2 font-semibold text-purple-700">Siap 1-2 Tahun (Dalam Mentoring)</td>
-            </tr>
-            <tr class="bg-slate-50/60">
-              <td class="p-2 border-r border-slate-200 font-bold text-slate-900">Head of Human Resources</td>
-              <td class="p-2 border-r border-slate-200 text-slate-600">Sarah Wijaya, S.Psi.</td>
-              <td class="p-2 border-r border-slate-200 font-bold text-indigo-700">Maya Putri, S.I.Kom.</td>
-              <td class="p-2 border-r border-slate-200"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Box 9: Star</span></td>
-              <td class="p-2 font-semibold text-emerald-700">Siap Sekarang (Ready Now)</td>
-            </tr>
-          </tbody>
-        </table>
-      `;
-
-      document.getElementById('repContentTableBox').innerHTML = tableHtml;
-      openModal('reportModal');
-    }
-
-    // Comprehensive Router Dispatcher for all print buttons
-    function openPrintReportModal(reportType) {
-      const type = (reportType || '').toLowerCase();
-      if (type.includes('9-box') || type.includes('talenta') || type.includes('talent')) {
-        printNineBoxReport();
-      } else if (type.includes('organisasi') || type.includes('org') || type.includes('struktur')) {
-        printOrgChartReport();
-      } else if (type.includes('kinerja') || type.includes('perf')) {
-        printPerformanceReport();
-      } else if (type.includes('gaji') || type.includes('payroll')) {
-        printPayrollReport();
-      } else if (type.includes('absen') || type.includes('presensi')) {
-        printAttendanceReport();
-      } else if (type.includes('aset') || type.includes('stok') || type.includes('inventory')) {
-        printInventoryReport();
-      } else if (type.includes('approval') || type.includes('setuju')) {
-        printApprovalReport();
-      } else {
-        printEmployeeReport();
-      }
-    }
-
-  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Bootstrap Icons via CDN (Latest v1.11.3) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1030,42 +67,408 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col select-none">
+    <!-- ================= 0. ENTERPRISE WELCOME / LANDING PAGE VIEW (CLEAN WHITE MODERN MINIMALIST) ================= -->
+  <div id="welcomeScreen" class="fixed inset-0 z-40 bg-white text-slate-800 overflow-y-auto no-print">
+    <!-- Ambient Subtle Background Glows (Clean Light Pastel) -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+      <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-rose-100/50 via-red-50/30 to-transparent blur-3xl opacity-70"></div>
+      <div class="absolute top-1/2 right-0 w-[500px] h-[500px] bg-gradient-to-br from-indigo-100/40 to-transparent blur-3xl opacity-60"></div>
+      <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-emerald-100/40 to-transparent blur-3xl opacity-60"></div>
+    </div>
 
-  <!-- ================= AUTH VIEW CONTAINER (LOGIN & REGISTRASI) ================= -->
-  <div id="authScreen" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto hidden no-print">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative overflow-hidden my-8">
-      <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500"></div>
-
-      <div class="flex items-center justify-center gap-2.5 mb-6">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white font-extrabold text-xl shadow-md">
-          T
+    <!-- Navigation Header (Clean Glassmorphism) -->
+    <nav class="sticky top-0 z-30 backdrop-blur-md bg-white/90 border-b border-slate-200/80 px-4 sm:px-8 py-3.5 shadow-xs">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <!-- Logo & Corporate Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-rose-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-rose-600/20">
+            T
+          </div>
+          <div>
+            <div class="font-black text-slate-900 text-lg tracking-tight flex items-center gap-1.5">
+              <span>Talenta</span><span class="text-rose-600 font-extrabold">.Enterprise</span>
+              <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-mono border border-rose-200">v2.4</span>
+            </div>
+            <p class="text-[10px] text-slate-500 font-medium">PT Nusantara Solusi Corpora (Holding Group)</p>
+          </div>
         </div>
-        <div class="text-left">
-          <span class="font-extrabold text-slate-900 tracking-tight text-xl">Talenta<span class="text-rose-600">.Enterprise</span></span>
-          <p class="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">Unified HCM & Payroll Cloud</p>
+
+        <!-- Middle Quick Navigation Links -->
+        <div class="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-600">
+          <a href="#welcomeSolusi" class="hover:text-rose-600 transition">Solusi Korporasi</a>
+          <a href="#welcomeFeatures" class="hover:text-rose-600 transition">Fitur Unggulan</a>
+          <a href="#welcomeRoles" class="hover:text-rose-600 transition">3 Akses Peran</a>
+          <a href="#welcomeCompliance" class="hover:text-rose-600 transition">Kepatuhan Regulasi</a>
+        </div>
+
+        <!-- Right Quick Actions -->
+        <div class="flex items-center gap-3">
+          <span class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Cloud HRIS • SLA 99.98%
+          </span>
+          <button onclick="openLoginModal()" class="px-4 sm:px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 transition flex items-center gap-2">
+            <span>Masuk ke Sistem</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </button>
         </div>
       </div>
+    </nav>
 
-      <div class="flex bg-slate-100 p-1 rounded-xl mb-6 text-xs font-bold border border-slate-200">
-        <button onclick="toggleAuthTab('login')" id="authTabLogin" class="flex-1 py-2 rounded-lg bg-white text-rose-700 shadow-sm transition">Masuk ke Akun</button>
-        <button onclick="toggleAuthTab('register')" id="authTabRegister" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">Daftar Akun Baru</button>
-      </div>
+    <!-- Main Welcome Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-16 sm:space-y-20 relative z-10">
+      
+      <!-- HERO SECTION -->
+      <section class="text-center max-w-4xl mx-auto space-y-6 pt-2 sm:pt-6" id="welcomeSolusi">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold shadow-2xs">
+          <i class="bi bi-stars text-rose-600 text-sm"></i>
+          <span>Unified Enterprise Human Capital Management & Automated Payroll</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+          <span class="text-rose-600 font-extrabold">2026 Edition</span>
+        </div>
 
-      <div id="loginFormSection" class="space-y-4">
+        <!-- Big Headline -->
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight sm:leading-none">
+          Transformasi Tata Kelola SDM Korporasi <br class="hidden sm:block"><span class="bg-clip-text text-transparent bg-gradient-to-r from-rose-600 via-red-600 to-indigo-600">Skala Besar & Holding</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+          Platform HCM enterprise terpusat untuk mengelola seluruh siklus hidup 1.248+ personel: Struktur Organisasi 5-Tingkat, Presensi Live Geofencing, Engine Payroll PPh 21 TER (PP 58/2023), Matriks Talenta 9-Box, dan Employee Self-Service berstandar <span class="text-slate-900 font-bold">ISO 27001 & UU PDP No. 27/2022</span>.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button onclick="openLoginModal()" class="w-full sm:w-auto px-7 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-rose-600/25 transition flex items-center justify-center gap-2.5">
+            <i class="bi bi-rocket-takeoff-fill"></i> <span>Masuk ke Portal HRIS</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </button>
+          <a href="#welcomeFeatures" class="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-2xl border border-slate-300 shadow-2xs hover:border-slate-400 transition flex items-center justify-center gap-2">
+            <i class="bi bi-grid-fill text-rose-600"></i> <span>Eksplorasi Fitur Sistem</span>
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </a>
+        </div>
+
+        <!-- HERO QUICK DEMO ACCESS CARDS (3 Roles) -->
+        <div class="pt-6 sm:pt-10">
+          <div class="flex items-center justify-center gap-2 mb-4">
+            <span class="w-8 h-px bg-slate-300"></span>
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">⚡ Uji Coba Cepat 1-Klik Berbasis Peran:</span>
+            <span class="w-8 h-px bg-slate-300"></span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            <!-- Role 1: HR Admin -->
+            <div onclick="quickLogin('admin')" class="p-5 rounded-2xl bg-white border border-purple-200 hover:border-purple-400 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group">
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-lg shadow-2xs"><i class="bi bi-person-fill-gear"></i></div>
+                <span class="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold text-[10px] uppercase border border-purple-200"><i class="bi bi-shield-check mr-1"></i>HR Superadmin</span>
+              </div>
+              <h4 class="font-extrabold text-sm text-slate-900 group-hover:text-purple-700 transition">Sarah Wijaya, S.Psi.</h4>
+              <p class="text-[10px] text-purple-600 font-semibold mb-1">Superadmin & HR Head • Holding Group</p>
+              <p class="text-xs text-slate-500 leading-relaxed">Akses penuh 1.248 karyawan holding, master payroll PPh 21 TER, formulir 1721-A1, audit log, dan User RBAC.</p>
+              <div class="mt-4 py-2 px-3 rounded-xl bg-purple-50 group-hover:bg-purple-600 text-purple-700 group-hover:text-white font-bold text-xs flex items-center justify-between transition">
+                <span>Masuk Sebagai Admin</span>
+                <span>&rarr;</span>
+              </div>
+            </div>
+
+            <!-- Role 2: Manager -->
+            <div onclick="quickLogin('manager')" class="p-5 rounded-2xl bg-white border border-amber-200 hover:border-amber-400 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group">
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 font-bold flex items-center justify-center text-lg shadow-2xs"><i class="bi bi-briefcase-fill"></i></div>
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold text-[10px] uppercase border border-amber-200"><i class="bi bi-person-workspace mr-1"></i>Line Manager</span>
+              </div>
+              <h4 class="font-extrabold text-sm text-slate-900 group-hover:text-amber-700 transition">Hendro Susilo, S.T.</h4>
+              <p class="text-[10px] text-amber-600 font-semibold mb-1">Manager Operasional • PT Logistik Express</p>
+              <p class="text-xs text-slate-500 leading-relaxed">Pengawasan 4 staf operasional, otorisasi approval cuti & lembur Level 1, jadwal shift kerja, dan review KPI 360°.</p>
+              <div class="mt-4 py-2 px-3 rounded-xl bg-amber-50 group-hover:bg-amber-600 text-amber-800 group-hover:text-white font-bold text-xs flex items-center justify-between transition">
+                <span>Masuk Sebagai Manager</span>
+                <span>&rarr;</span>
+              </div>
+            </div>
+
+            <!-- Role 3: Employee ESS -->
+            <div onclick="quickLogin('employee')" class="p-5 rounded-2xl bg-white border border-emerald-200 hover:border-emerald-400 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group">
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-lg shadow-2xs"><i class="bi bi-person-badge-fill"></i></div>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold text-[10px] uppercase border border-emerald-200"><i class="bi bi-phone mr-1"></i>Karyawan ESS</span>
+              </div>
+              <h4 class="font-extrabold text-sm text-slate-900 group-hover:text-emerald-700 transition">Budi Santoso</h4>
+              <p class="text-[10px] text-emerald-600 font-semibold mb-1">Field Specialist • Site Cikarang</p>
+              <p class="text-xs text-slate-500 leading-relaxed">Presensi mandiri GPS geofencing radius 100m, pengajuan cuti & lembur, confidential payslip digital ber-QR code.</p>
+              <div class="mt-4 py-2 px-3 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-800 group-hover:text-white font-bold text-xs flex items-center justify-between transition">
+                <span>Masuk Sebagai Karyawan</span>
+                <span>&rarr;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELEMETRY COUNTER STRIP -->
+      <section class="grid grid-cols-2 md:grid-cols-5 gap-3 p-5 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
+        <div class="text-center p-3 border-r border-slate-100 last:border-none">
+          <div class="text-2xl sm:text-3xl font-black text-slate-900 font-mono">1.248<span class="text-rose-600">+</span></div>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Personel Multi-Holding</p>
+        </div>
+        <div class="text-center p-3 border-r border-slate-100 last:border-none">
+          <div class="text-2xl sm:text-3xl font-black text-slate-900 font-mono">3</div>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Entitas Bisnis Terpadu</p>
+        </div>
+        <div class="text-center p-3 border-r border-slate-100 last:border-none">
+          <div class="text-2xl sm:text-3xl font-black text-emerald-600 font-mono">99.98%</div>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">High Availability SLA</p>
+        </div>
+        <div class="text-center p-3 border-r border-slate-100 last:border-none">
+          <div class="text-2xl sm:text-3xl font-black text-rose-600 font-mono">PP 58/2023</div>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">PPh 21 TER Otomatis</p>
+        </div>
+        <div class="text-center p-3 col-span-2 md:col-span-1">
+          <div class="text-2xl sm:text-3xl font-black text-indigo-600 font-mono">ISO 27001</div>
+          <p class="text-[11px] text-slate-500 font-semibold mt-0.5">UU PDP No. 27/2022</p>
+        </div>
+      </section>
+
+      <!-- 6 CORE ENTERPRISE FEATURES SECTION -->
+      <section class="space-y-8" id="welcomeFeatures">
+        <div class="text-center max-w-2xl mx-auto">
+          <span class="px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold uppercase tracking-wider border border-rose-200">Enterprise Capabilities</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 mt-2">Arsitektur Modul Komprehensif Berkelas Dunia</h2>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1">Didesain khusus untuk memenuhi kompleksitas tata kelola holding multi-bisnis dan regulasi ketenagakerjaan Indonesia.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Card 1 -->
+          <div class="p-6 rounded-3xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl border border-indigo-100 shadow-2xs">
+              <i class="bi bi-buildings-fill"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-900">Multi-Holding & Struktur 5-Tingkat</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Konsolidasi 3 entitas bisnis (Holding, Logistik Express, Retail Maju) dengan bagan hierarki struktural 5 tingkat (BOD hingga Frontline Staff) dan pencarian node interaktif.
+            </p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-6 rounded-3xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all duration-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl border border-emerald-100 shadow-2xs">
+              <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-900">Live Geofencing & Roster Shift</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Presensi mandiri validasi radius 100m kantor pusat, GPS koordinat proyek Cikarang, deteksi Fake GPS / mock lokasi, tangkapan kamera selfie, dan formulir tukar shift kerja.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-6 rounded-3xl bg-white border border-slate-200 hover:border-rose-300 hover:shadow-md transition-all duration-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl border border-rose-100 shadow-2xs">
+              <i class="bi bi-cash-stack"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-900">Payroll Engine & PPh 21 TER</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Perhitungan otomatis PPh 21 TER (PP 58/2023 Kategori A, B, C), pagu resmi BPJS Ketenagakerjaan & Kesehatan, bukti potong pajak 1721-A1, dan ekspor batch bank (BCA, Mandiri, BRI).
+            </p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="p-6 rounded-3xl bg-white border border-slate-200 hover:border-purple-300 hover:shadow-md transition-all duration-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl border border-purple-100 shadow-2xs">
+              <i class="bi bi-grid-3x3-gap-fill"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-900">Kotak Talenta (9-Box Grid)</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Pemetaan 9 kuadran Kinerja vs Potensi, identifikasi suksesor posisi kunci C-Level (Ready Now vs Ready 1-2 Years), review kinerja 360°, dan cetak laporan suksesi talenta ISO.
+            </p>
+          </div>
+
+          <!-- Card 5 -->
+          <div class="p-6 rounded-3xl bg-white border border-slate-200 hover:border-sky-300 hover:shadow-md transition-all duration-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-2xl border border-sky-100 shadow-2xs">
+              <i class="bi bi-person-check-fill"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-900">ESS Portal & Alur Approval L1/L2</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Portal mandiri karyawan pengajuan cuti saldo real-time, lembur SPKL, reimburse kuitansi foto, permintaan APD K3, dan workflow approval bertingkat berjenjang bebas konflik kepentingan.
+            </p>
+          </div>
+
+          <!-- Card 6 -->
+          <div class="p-6 rounded-3xl bg-white border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-2xl border border-amber-100 shadow-2xs">
+              <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-900">Manajemen Pengguna (User RBAC)</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Full CRUD akun pengguna sistem, reset kata sandi acak, penguncian akun suspend, 2FA OTP, audit trail riwayat login IP address, serta kepatuhan UU PDP No. 27/2022.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROLE COMPARISON & PERMISSION SHOWCASE -->
+      <section class="space-y-8" id="welcomeRoles">
+        <div class="text-center max-w-2xl mx-auto">
+          <span class="px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold uppercase tracking-wider border border-purple-200">Role-Based Security</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 mt-2">Hak Akses Granular Sesuai Peran Pengguna</h2>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1">Penerapan prinsip Need-to-Know Basis dan isolasi privasi data pribadi zero-leakage.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Role Col 1 -->
+          <div class="p-6 rounded-3xl bg-white border border-purple-200 shadow-sm flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-3 py-1 rounded-full bg-purple-50 text-purple-700 font-extrabold text-xs border border-purple-200">SUPERADMIN</span>
+                <span class="text-xs text-purple-600 font-mono font-bold">1.248 Personel</span>
+              </div>
+              <h3 class="text-lg font-black text-slate-900 mt-3">HR Admin (Sarah Wijaya)</h3>
+              <p class="text-xs text-slate-500 mt-1">Mengelola tata kelola induk holding, konfigurasi penggajian, dan kepatuhan hukum korporasi.</p>
+              
+              <ul class="mt-4 space-y-2 text-xs text-slate-700">
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Full CRUD Master Database Karyawan</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Hitung Pajak PPh 21 TER & BPJS Grup</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Otorisasi Final Approval Level 2</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Ekspor Batch Bank (Mandiri, BCA, BRI)</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Manajemen Pengguna Sistem & RBAC</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Akses Seluruh Laporan Berstempel ISO</li>
+              </ul>
+            </div>
+            <button onclick="quickLogin('admin')" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition shadow-sm">Masuk Sebagai HR Admin &rarr;</button>
+          </div>
+
+          <!-- Role Col 2 -->
+          <div class="p-6 rounded-3xl bg-white border border-amber-200 shadow-sm flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-800 font-extrabold text-xs border border-amber-200">LINE SUPERVISOR</span>
+                <span class="text-xs text-amber-600 font-mono font-bold">4 Staf IT/Ops</span>
+              </div>
+              <h3 class="text-lg font-black text-slate-900 mt-3">Line Manager (Hendro Susilo)</h3>
+              <p class="text-xs text-slate-500 mt-1">Mengontrol operasional tim kerja harian, persetujuan awal, dan evaluasi capaian target KPI tim.</p>
+              
+              <ul class="mt-4 space-y-2 text-xs text-slate-700">
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Terisolasi Khusus 4 Staf Bawahannya</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Otorisasi Persetujuan Level 1 (Cuti/Lembur)</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Monitoring Jam Kerja & Keterlambatan Tim</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Persetujuan Permohonan Tukar Shift</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Evaluasi Skor Kinerja & Rekomendasi PIP</li>
+                <li class="flex items-center gap-2 text-slate-400"><i class="bi bi-lock-fill text-slate-400 text-xs"></i> Terkunci dari Gaji & Data Divisi Lain</li>
+              </ul>
+            </div>
+            <button onclick="quickLogin('manager')" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm">Masuk Sebagai Line Manager &rarr;</button>
+          </div>
+
+          <!-- Role Col 3 -->
+          <div class="p-6 rounded-3xl bg-white border border-emerald-200 shadow-sm flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-extrabold text-xs border border-emerald-200">SELF-SERVICE</span>
+                <span class="text-xs text-emerald-600 font-mono font-bold">Data Pribadi (1 Baris)</span>
+              </div>
+              <h3 class="text-lg font-black text-slate-900 mt-3">Pegawai ESS (Budi Santoso)</h3>
+              <p class="text-xs text-slate-500 mt-1">Akses mandiri untuk keperluan administrasi kepegawaian pribadi dengan perlindungan privasi UU PDP.</p>
+              
+              <ul class="mt-4 space-y-2 text-xs text-slate-700">
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Presensi Mandiri Live GPS & Selfie Foto</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Form Mandiri Cuti, Lembur, & Klaim Biaya</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Slip Gaji Digital Terenkripsi Ber-QR Code</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Bukti Potong Pajak Formulir 1721-A1 Pribadi</li>
+                <li class="flex items-center gap-2"><i class="bi bi-check-circle-fill text-emerald-600 text-xs"></i> Akses Rapor Evaluasi Kinerja (Skor 96)</li>
+                <li class="flex items-center gap-2 text-slate-400"><i class="bi bi-lock-fill text-slate-400 text-xs"></i> Zero Data Leakage ke Rekan Kerja</li>
+              </ul>
+            </div>
+            <button onclick="quickLogin('employee')" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-sm">Masuk Sebagai Karyawan &rarr;</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- REGULATORY COMPLIANCE SECTION -->
+      <section class="p-6 sm:p-8 rounded-3xl bg-slate-50 border border-slate-200 shadow-xs space-y-6" id="welcomeCompliance">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider border border-emerald-200">Legal & Security Compliance</span>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">Kepatuhan Penuh Terhadap Regulasi Nasional & Standar Internasional</h3>
+          </div>
+          <button onclick="openLoginModal()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl text-xs transition shadow shrink-0">
+            Mulai Akses Sekarang &rarr;
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+            <div class="font-extrabold text-sm text-rose-600">PP No. 58 / 2023</div>
+            <div class="text-xs font-bold text-slate-900 mt-0.5">Skema PPh 21 TER Otomatis</div>
+            <p class="text-[11px] text-slate-500 mt-1">Kalkulasi bulanan kategori A, B, C dan cetak formulir resmi 1721-A1 DJP.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+            <div class="font-extrabold text-sm text-blue-600">UU PDP No. 27 / 2022</div>
+            <div class="text-xs font-bold text-slate-900 mt-0.5">Perlindungan Data Pribadi</div>
+            <p class="text-[11px] text-slate-500 mt-1">Isolasi ketat data finansial, rekam medis, dan informasi karyawan antar rekan kerja.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+            <div class="font-extrabold text-sm text-emerald-600">ISO / IEC 27001</div>
+            <div class="text-xs font-bold text-slate-900 mt-0.5">Keamanan Informasi Cloud</div>
+            <p class="text-[11px] text-slate-500 mt-1">Enkripsi kredensial pengguna, pembatasan hak akses RBAC, dan audit trail login IP.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+            <div class="font-extrabold text-sm text-amber-600">Depnaker & BPJS RI</div>
+            <div class="text-xs font-bold text-slate-900 mt-0.5">Formula Upah & Pagu Iuran</div>
+            <p class="text-[11px] text-slate-500 mt-1">Multiplier lembur resmi dan pagu upah maksimal BPJS JP & BPJS Kesehatan.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Email Karyawan / NIK:</label>
+          <span class="font-bold text-slate-700">Talenta Enterprise Cloud HRIS</span> • &copy; 2026 PT Nusantara Solusi Corpora (Holding). All rights reserved.
+        </div>
+        <div class="flex items-center gap-4 font-mono text-[11px]">
+          <span class="text-emerald-600 font-bold flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Verified ISO 27001</span>
+          <span>•</span>
+          <a href="#" onclick="window.scrollTo({top:0, behavior:'smooth'})" class="text-rose-600 hover:text-rose-700 font-bold">Kembali ke Atas &uarr;</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ================= AUTHENTICATION MODAL (CLEAN WHITE MODERN) ================= -->
+  <div id="authScreen" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 sm:p-7 space-y-5 my-auto relative">
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-2xl w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">&times;</button>
+      
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 mx-auto flex items-center justify-center text-2xl font-black mb-3 border border-rose-100 shadow-xs">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <h2 class="text-xl font-black text-slate-900">Talenta Cloud Portal</h2>
+        <p class="text-xs text-slate-500 mt-1">Masuk untuk mengakses sistem HRIS enterprise</p>
+      </div>
+
+      <!-- Auth Mode Switcher -->
+      <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+        <button id="authTabLogin" onclick="toggleAuthMode('login')" class="flex-1 py-1.5 rounded-lg bg-white text-slate-900 shadow-xs transition">Masuk (Login)</button>
+        <button id="authTabRegister" onclick="toggleAuthMode('register')" class="flex-1 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 transition">Daftar Akun</button>
+      </div>
+
+      <!-- Form Inputs -->
+      <div id="loginFormSection" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email Perusahaan / NIP:</label>
           <input type="email" id="loginEmail" value="sarah.wijaya@nusantara.id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition">
         </div>
-
         <div>
-          <div class="flex justify-between items-center mb-1">
+          <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-semibold text-slate-700">Kata Sandi:</label>
-            <a href="#" onclick="alert('Untuk demo trial, silakan gunakan tombol demo login di bawah')" class="text-[11px] text-rose-600 hover:underline font-medium">Lupa sandi?</a>
+            <a href="#" onclick="alert('Untuk demonstrasi, silakan gunakan tombol demo role di bawah')" class="text-[11px] text-rose-600 hover:underline font-medium">Lupa sandi?</a>
           </div>
           <input type="password" id="loginPassword" value="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition">
         </div>
 
-        <button onclick="handleLoginSubmit()" class="w-full py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/20 transition flex items-center justify-center gap-2">
+        <button onclick="handleLoginSubmit()" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/20 transition flex items-center justify-center gap-2">
           <span>Masuk Sekarang</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
         </button>
@@ -1073,17 +476,17 @@
         <div class="pt-4 border-t border-slate-100">
           <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2.5">⚡ Uji Coba Cepat (Pilih Peran):</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
-            <button onclick="quickLogin('admin')" class="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-[11px] font-bold text-rose-800 transition">
-              👑 HR Admin
-              <span class="block text-[9px] font-normal text-rose-600">Full CRUD & Config</span>
+            <button onclick="quickLogin('admin')" class="p-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl text-[11px] font-bold text-purple-800 transition">
+              <i class="bi bi-person-fill-gear mr-1"></i> HR Admin
+              <span class="block text-[9px] font-normal text-purple-600">Full Access</span>
             </button>
             <button onclick="quickLogin('manager')" class="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-800 transition">
-              👔 Manager/HOD
+              <i class="bi bi-briefcase-fill mr-1"></i> Manager
               <span class="block text-[9px] font-normal text-amber-600">Approval Tim</span>
             </button>
-            <button onclick="quickLogin('employee')" class="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[11px] font-bold text-blue-800 transition">
-              👷 Karyawan ESS
-              <span class="block text-[9px] font-normal text-blue-600">Absen & Cuti</span>
+            <button onclick="quickLogin('employee')" class="p-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-[11px] font-bold text-emerald-800 transition">
+              <i class="bi bi-person-badge-fill mr-1"></i> Karyawan
+              <span class="block text-[9px] font-normal text-emerald-600">ESS & Absen</span>
             </button>
           </div>
         </div>
@@ -1125,13 +528,16 @@
     </div>
   </div>
 
+  <!-- ================= APP MAIN CONTAINER (WRAPPED FOR WELCOME / AUTH SWITCH) ================= -->
+  <div id="appMainLayout" class="flex flex-col min-h-screen">
+
   <!-- ================= TOP APP HEADER (SUPER RESPONSIVE) ================= -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-3 sm:px-5 py-2 flex items-center justify-between shadow-xs no-print gap-2">
     <div class="flex items-center gap-2 sm:gap-3 min-w-0">
       
       <!-- Hamburger Toggle Sidebar Button (Mobile & Desktop Collapse) -->
       <button onclick="toggleSidebar()" id="sidebarToggleBtn" class="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition focus:outline-none shrink-0" title="Toggle Sidebar">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <i class="bi bi-list text-lg"></i>
       </button>
 
       <!-- App Logo -->
@@ -1160,7 +566,7 @@
 
       <!-- Global Search Omnibox (Ctrl+K) -->
       <div onclick="openGlobalSearch()" class="hidden md:flex items-center gap-2 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-xl border border-slate-200 text-xs text-slate-500 cursor-pointer transition shrink-0 ml-1" title="Cari cepat (Ctrl+K)">
-        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <i class="bi bi-search text-slate-400 text-xs"></i>
         <span class="text-xs">Cari...</span>
         <kbd class="px-1.5 py-0.2 text-[9px] bg-white border border-slate-300 rounded font-mono text-slate-600 shadow-2xs">Ctrl K</kbd>
       </div>
@@ -1179,7 +585,7 @@
       <!-- Notification Bell -->
       <div class="relative">
         <button onclick="toggleNotificationPopover()" class="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition" title="Pusat Notifikasi Korporat">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <i class="bi bi-bell-fill text-slate-600 text-base"></i>
           <span id="notifBadge" class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-600 rounded-full border-2 border-white animate-pulse"></span>
         </button>
 
@@ -1262,10 +668,10 @@
 
           <div class="py-1">
             <a href="#" onclick="switchTab('database'); toggleUserDropdown();" class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50">
-              <span>👤 Profil Pegawai</span>
+              <i class="bi bi-person-circle mr-2 text-slate-500"></i><span>Profil Pegawai</span>
             </a>
             <a href="#" onclick="switchTab('documents'); toggleUserDropdown();" class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50">
-              <span>📄 Dokumen Resmi</span>
+              <i class="bi bi-file-earmark-text mr-2 text-slate-500"></i><span>Dokumen Resmi</span>
             </a>
           </div>
 
@@ -1277,6 +683,12 @@
           </div>
         </div>
       </div>
+
+      <!-- Direct Visible Logout Button in Header -->
+      <button onclick="handleLogout()" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition shrink-0 shadow-2xs" title="Keluar ke Halaman Welcome">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span class="hidden md:inline">Keluar</span>
+      </button>
     </div>
   </header>
 
@@ -1296,79 +708,79 @@
 
         <nav class="space-y-1 px-2 text-xs font-semibold" id="sidebarNavLinks">
           <button onclick="switchTab('dashboard')" class="sidebar-btn active flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 transition" data-tab="dashboard">
-            <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <i class="bi bi-speedometer2 text-rose-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Executive Dashboard</span>
           </button>
           
           <button onclick="switchTab('database')" class="sidebar-btn role-admin-only role-manager-only flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="database">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <i class="bi bi-people-fill text-slate-500 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Database Karyawan</span>
             <span class="sidebar-badge ml-auto bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono" id="sidebarEmpCount">12</span>
           </button>
 
           <button onclick="switchTab('orgchart')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="orgchart">
-            <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM9 9v3m6-3v3m-9 0h12m-6 0v4m-3 3h6"/></svg>
+            <i class="bi bi-diagram-3-fill text-indigo-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Struktur Organisasi (Org Chart)</span>
             <span class="sidebar-badge ml-auto bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.2 rounded text-[10px]">5-Level</span>
           </button>
 
           <button onclick="switchTab('attendance')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="attendance">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <i class="bi bi-geo-alt-fill text-emerald-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Presensi Online (Live GPS)</span>
             <span class="sidebar-badge ml-auto w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </button>
 
           <button onclick="switchTab('ess')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="ess">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <i class="bi bi-person-badge-fill text-sky-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Employee Self-Service (ESS)</span>
           </button>
 
           <button onclick="switchTab('approval')" class="sidebar-btn role-admin-only role-manager-only flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="approval">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span class="sidebar-label truncate">Approval Center</span>
+            <i class="bi bi-check2-circle text-amber-600 text-base shrink-0"></i>
+            <span class="sidebar-label truncate">Pusat Approval</span>
             <span id="pendingBadge" class="sidebar-badge ml-auto bg-amber-100 text-amber-700 font-bold px-1.5 py-0.2 rounded-full text-[10px]">3</span>
           </button>
 
-          <button onclick="switchTab('payroll')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="payroll">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span class="sidebar-label truncate">Gaji & PPh 21 (Payroll)</span>
+          <button onclick="switchTab('payroll')" class="sidebar-btn role-admin-only flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="payroll">
+            <i class="bi bi-cash-stack text-emerald-600 text-base shrink-0"></i>
+            <span class="sidebar-label truncate">Penggajian & PPh 21 TER</span>
             <span class="sidebar-badge ml-auto bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded text-[10px]">TER</span>
           </button>
 
-          <button onclick="switchTab('performance')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="performance">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <button onclick="switchTab('performance')" class="sidebar-btn role-admin-only role-manager-only flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="performance">
+            <i class="bi bi-graph-up-arrow text-blue-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Manajemen Kinerja & KPI</span>
             <span class="sidebar-badge ml-auto bg-blue-100 text-blue-800 font-bold px-1.5 py-0.2 rounded text-[10px]">KPI</span>
           </button>
 
           <button onclick="switchTab('talent')" class="sidebar-btn role-admin-only role-manager-only flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="talent">
-            <svg class="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <i class="bi bi-grid-3x3-gap-fill text-purple-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Kotak Talenta (9-Box Grid)</span>
             <span class="sidebar-badge ml-auto bg-purple-100 text-purple-800 font-bold px-1.5 py-0.2 rounded text-[10px]">9-Box</span>
           </button>
 
           <button onclick="switchTab('assets')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="assets">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <i class="bi bi-box-seam-fill text-amber-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Aset & Stok Inventaris (GA)</span>
           </button>
 
           <button onclick="switchTab('documents')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="documents">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <i class="bi bi-file-earmark-text-fill text-indigo-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Dokumen & Penomoran Surat</span>
           </button>
 
           <button onclick="switchTab('onboarding')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="onboarding">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <i class="bi bi-person-plus-fill text-emerald-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Onboarding & Offboarding</span>
           </button>
 
           <button onclick="switchTab('helpdesk')" class="sidebar-btn flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="helpdesk">
-            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <i class="bi bi-headset text-rose-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">HR Helpdesk & Tiket</span>
           </button>
 
           <button onclick="switchTab('users')" class="sidebar-btn role-admin-only flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition" data-tab="users">
-            <svg class="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <i class="bi bi-person-fill-gear text-purple-600 text-base shrink-0"></i>
             <span class="sidebar-label truncate">Manajemen Pengguna (User RBAC)</span>
             <span class="sidebar-badge ml-auto bg-purple-100 text-purple-800 font-bold px-1.5 py-0.2 rounded text-[10px]" id="usersCountBadge">6</span>
           </button>
@@ -1377,7 +789,7 @@
 
       <div class="p-3 m-3 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-500 shrink-0" id="sidebarComplianceCard">
         <div class="flex items-center gap-2 font-bold text-slate-800 mb-1">
-          <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <i class="bi bi-shield-fill-check text-emerald-600 text-base shrink-0"></i>
           Kepatuhan ISO 27001
         </div>
         <p class="leading-relaxed">Data NIK & Rekening dienkripsi AES-256. Skema PPh 21 TER otomatis.</p>
@@ -1391,18 +803,18 @@
 
       <!-- ================= TAB 1: EXECUTIVE DASHBOARD ================= -->
       <section id="tab-dashboard" class="tab-content active space-y-5">
-        <!-- Corporate Broadcast Ticker & Compliance Strip -->
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-4 py-2 rounded-2xl text-[11px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm border border-slate-800">
+        <!-- Corporate Broadcast Ticker & Compliance Strip (Clean Light Design) -->
+        <div class="bg-white text-slate-800 px-4 py-2.5 rounded-2xl text-[11px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs border border-slate-200">
           <div class="flex items-center gap-2 overflow-hidden">
-            <span class="px-2 py-0.5 rounded-full bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider shrink-0">BROADCAST</span>
-            <div class="truncate text-slate-200">
-              📢 <span class="font-bold text-white">Cut-Off Payroll Nov 2026:</span> 25 Nov pkl 17:00 WIB • Skema PPh 21 TER (PP 58/2023) Aktif
+            <span class="px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[9px] uppercase tracking-wider shrink-0 shadow-2xs">BROADCAST</span>
+            <div class="truncate text-slate-700">
+              <i class="bi bi-megaphone-fill text-rose-600 mr-1.5"></i><span class="font-extrabold text-slate-900">Cut-Off Payroll Nov 2026:</span> 25 Nov pkl 17:00 WIB • Skema PPh 21 TER (PP 58/2023) Aktif
             </div>
           </div>
-          <div class="flex items-center gap-3 shrink-0 text-slate-300 font-mono text-[10px]">
-            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> SLA 99.98%</span>
+          <div class="flex items-center gap-3 shrink-0 text-slate-600 font-mono text-[10px]">
+            <span class="flex items-center gap-1.5 font-bold text-emerald-700"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SLA 99.98%</span>
             <span>•</span>
-            <span class="text-indigo-300">ISO 27001 & UU PDP Compliant</span>
+            <span class="text-indigo-700 font-semibold">ISO 27001 & UU PDP Compliant</span>
           </div>
         </div>
         <!-- Banner Hero (Dynamic per Role) -->
@@ -1426,7 +838,7 @@
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:shadow-sm transition">
             <div class="flex items-center justify-between text-slate-500 mb-2">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400" id="dashMetricLabel1">Total Karyawan</span>
-              <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs" id="dashMetricIcon1">👥</div>
+              <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm shadow-2xs" id="dashMetricIcon1"><i class="bi bi-people-fill"></i></div>
             </div>
             <div class="text-xl sm:text-2xl font-black text-slate-900" id="dashMetricVal1">1,248</div>
             <div class="text-[11px] text-emerald-600 mt-1 font-semibold flex items-center gap-1" id="dashMetricSub1">
@@ -1438,7 +850,7 @@
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:shadow-sm transition">
             <div class="flex items-center justify-between text-slate-500 mb-2">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400" id="dashMetricLabel2">Kehadiran Hari Ini</span>
-              <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs" id="dashMetricIcon2">📍</div>
+              <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm shadow-2xs" id="dashMetricIcon2"><i class="bi bi-geo-alt-fill"></i></div>
             </div>
             <div class="text-xl sm:text-2xl font-black text-slate-900" id="dashMetricVal2">96.4%</div>
             <div class="text-[11px] text-slate-500 mt-1" id="dashMetricSub2">
@@ -1450,7 +862,7 @@
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:shadow-sm transition">
             <div class="flex items-center justify-between text-slate-500 mb-2">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400" id="dashMetricLabel3">Pending Approval</span>
-              <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs" id="dashMetricIcon3">⏳</div>
+              <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm shadow-2xs" id="dashMetricIcon3"><i class="bi bi-hourglass-split"></i></div>
             </div>
             <div class="text-xl sm:text-2xl font-black text-amber-600" id="dashMetricVal3">3</div>
             <div class="text-[11px] text-slate-500 mt-1" id="dashMetricSub3">
@@ -1585,10 +997,10 @@
               <span>🌿 Bagan Struktur Organisasi</span>
             </button>
             <button onclick="printEmployeeReport()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
-              <span>🖨️ Cetak Laporan Pegawai</span>
+              <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Laporan Pegawai</span>
             </button>
             <button onclick="exportEmployeesExcel()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 flex items-center gap-1.5 transition">
-              <span>📥 Export Excel</span>
+              <i class="bi bi-file-earmark-spreadsheet-fill mr-1.5"></i><span>Ekspor CSV / Excel</span>
             </button>
             <button onclick="openAddEmployeeModal()" class="role-admin-only px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-600/20 flex items-center gap-1.5 transition">
               <span>+ Tambah Pegawai Baru</span>
@@ -1640,10 +1052,10 @@
         <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button onclick="toggleEmployeeViewMode('directory')" id="empViewModeDirBtn" class="px-3.5 py-1.5 rounded-xl font-bold text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs transition">
-              👥 Direktori Master Karyawan
+              <i class="bi bi-people-fill text-indigo-600 mr-1.5"></i> Direktori Master Karyawan
             </button>
             <button onclick="toggleEmployeeViewMode('contract')" id="empViewModeContractBtn" class="px-3.5 py-1.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100 border border-transparent transition flex items-center gap-1.5">
-              <span>⏳</span> Monitoring Kontrak PKWT & Probation
+              <i class="bi bi-hourglass-split text-amber-600 mr-1.5"></i> Monitoring Kontrak PKWT & Probation
               <span class="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-bold">2 Alert</span>
             </button>
           </div>
@@ -2021,7 +1433,7 @@
           </div>
           <div class="flex items-center gap-3">
             <button onclick="printAttendanceReport()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
-              <span>🖨️ Cetak Rekap Presensi</span>
+              <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Rekap Presensi</span>
             </button>
             <div class="text-right border-l border-slate-200 pl-3">
               <div class="text-[10px] text-slate-400 font-medium">Waktu Presensi:</div>
@@ -2228,7 +1640,7 @@
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div class="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <span>⏱️</span> Pengajuan Jam Lembur (Overtime)
+                <i class="bi bi-stopwatch-fill text-blue-600 mr-1.5"></i> Pengajuan Jam Lembur (Overtime)
               </h3>
               <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">Sesuai Depnaker</span>
             </div>
@@ -2313,7 +1725,7 @@
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div class="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <span>📦</span> Permintaan Barang / APD Lapangan (GA)
+                <i class="bi bi-box-seam-fill text-amber-600 mr-1.5"></i> Permintaan Barang / APD Lapangan (GA)
               </h3>
               <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-full">Gudang Logistik</span>
             </div>
@@ -2359,7 +1771,7 @@
             <p class="text-xs text-slate-500 mt-0.5">Alur otomatis persetujuan cuti, lembur, reimbursement, dan inventaris dari Direct Manager hingga HR.</p>
           </div>
           <button onclick="printApprovalReport()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
-            <span>🖨️ Cetak Rekap Approval & Klaim</span>
+            <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Rekap Approval & Klaim</span>
           </button>
         </div>
 
@@ -2393,7 +1805,7 @@
           </div>
           <div class="flex items-center gap-2">
             <button onclick="printInventoryReport()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
-              <span>🖨️ Cetak Laporan Inventaris</span>
+              <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Laporan Inventaris</span>
             </button>
             <button onclick="openModal('addAssetModal')" class="role-admin-only px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition">
               + Tambah Aset / Barang Baru
@@ -2469,7 +1881,7 @@
             <div class="flex items-center justify-between border-b border-slate-200 pb-3">
               <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Preview Dokumen Resmi (PDF Ready)</span>
               <button onclick="window.print()" class="px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5">
-                <span>🖨️ Cetak Dokumen Resmi</span>
+                <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Dokumen Resmi</span>
               </button>
             </div>
 
@@ -2651,7 +2063,7 @@
                 <span>💾 Ekspor Bank Transfer (.CSV)</span>
               </button>
               <button onclick="printPayrollReport()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
-                <span>🖨️ Cetak Rekap Gaji & Pajak</span>
+                <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Rekap Gaji & Pajak</span>
               </button>
             </div>
           </div>
@@ -2896,7 +2308,7 @@
                   <div class="text-[11px] text-emerald-100 italic mt-1" id="essSlipTerbilang">"Sembilan Juta Lima Ratus Enam Puluh Sembilan Ribu Dua Ratus Lima Puluh Rupiah"</div>
                 </div>
                 <button onclick="printSinglePayslip(0)" class="px-4 py-2.5 bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold rounded-xl shadow transition shrink-0 flex items-center gap-2">
-                  <span>🖨️ Cetak / Unduh Slip PDF</span>
+                  <i class="bi bi-file-earmark-pdf-fill mr-1.5"></i><span>Cetak / Unduh Slip PDF</span>
                 </button>
               </div>
 
@@ -2927,7 +2339,7 @@
               <p class="text-xs text-slate-500">Pemetaan potensi dan performa SDM untuk suksesi kepemimpinan, kenaikan grade, dan rekomendasi bonus.</p>
             </div>
             <button onclick="printPerformanceReport()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
-              <span>🖨️ Cetak Rapor & Matriks Talenta</span>
+              <i class="bi bi-printer-fill mr-1.5"></i><span>Cetak Rapor & Matriks Talenta</span>
             </button>
           </div>
 
@@ -3373,6 +2785,7 @@
 
     </main>
   </div>
+  </div> <!-- END appMainLayout -->
 
   <!-- ================= PRINTABLE REPORT MODAL / CONTAINER (OFFICIAL REPORT TEMPLATE) ================= -->
   <div id="reportModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
@@ -4443,22 +3856,22 @@
 
       if (role === 'admin') {
         if (l1) l1.innerText = 'Total Karyawan Grup';
-        if (i1) i1.innerText = '👥';
+        if (i1) i1.innerHTML = '<i class="bi bi-people-fill text-blue-600 text-base"></i>';
         if (v1) v1.innerText = (1240 + appState.employees.length).toLocaleString('id-ID');
         if (s1) s1.innerHTML = '<span class="text-emerald-600 font-semibold">↑ 18 bulan ini (Holding)</span>';
 
         if (l2) l2.innerText = 'Kehadiran Hari Ini';
-        if (i2) i2.innerText = '📍';
+        if (i2) i2.innerHTML = '<i class="bi bi-geo-alt-fill text-emerald-600 text-base"></i>';
         if (v2) v2.innerText = '96.4%';
         if (s2) s2.innerHTML = '<span class="text-emerald-700 font-bold">1,120 WFO</span> • <span class="text-blue-700 font-bold">82 Lapangan</span>';
 
         if (l3) l3.innerText = 'Pending Approval Grup';
-        if (i3) i3.innerText = '⏳';
+        if (i3) i3.innerHTML = '<i class="bi bi-hourglass-split text-amber-600 text-base"></i>';
         if (v3) v3.innerText = appState.approvals.length;
         if (s3) s3.innerHTML = '<span class="text-slate-500">Perlu respon HR/Direksi</span>';
 
         if (l4) l4.innerText = 'PPh 21 TER Estimasi';
-        if (i4) i4.innerText = '💰';
+        if (i4) i4.innerHTML = '<i class="bi bi-cash-stack text-purple-600 text-base"></i>';
         if (v4) v4.innerText = 'Rp 148.2 jt';
         if (s4) s4.innerHTML = '<span class="text-emerald-600 font-semibold">Kategori A/B/C Sesuai</span>';
 
@@ -4467,44 +3880,44 @@
         const teamApprovals = appState.approvals.filter(a => a.hier.includes('Supervisor') || a.hier.includes('Manager') || a.dept.toLowerCase().includes('operations') || a.emp.toLowerCase().includes('budi'));
 
         if (l1) l1.innerText = 'Anggota Tim Divisi';
-        if (i1) i1.innerText = '👷';
+        if (i1) i1.innerHTML = '<i class="bi bi-person-workspace text-amber-600 text-base"></i>';
         if (v1) v1.innerText = `${teamEmps.length} Pegawai`;
         if (s1) s1.innerHTML = '<span class="text-emerald-600 font-semibold">Dept Operasional & Logistik</span>';
 
         if (l2) l2.innerText = 'Kehadiran Tim Hari Ini';
-        if (i2) i2.innerText = '✅';
+        if (i2) i2.innerHTML = '<i class="bi bi-check-circle-fill text-emerald-600 text-base"></i>';
         if (v2) v2.innerText = '100%';
         if (s2) s2.innerHTML = '<span class="text-emerald-700 font-bold">3 WFO Cikarang</span> • <span class="text-blue-700 font-bold">1 Lapangan</span>';
 
         if (l3) l3.innerText = 'Pending Approval Tim';
-        if (i3) i3.innerText = '⏳';
+        if (i3) i3.innerHTML = '<i class="bi bi-hourglass-split text-amber-600 text-base"></i>';
         if (v3) v3.innerText = `${teamApprovals.length} Pengajuan`;
         if (s3) s3.innerHTML = '<span class="text-amber-600 font-bold">Perlu persetujuan Anda</span>';
 
         if (l4) l4.innerText = 'Rata-rata KPI Tim';
-        if (i4) i4.innerText = '🎯';
+        if (i4) i4.innerHTML = '<i class="bi bi-graph-up-arrow text-blue-600 text-base"></i>';
         if (v4) v4.innerText = '92.2%';
         if (s4) s4.innerHTML = '<span class="text-emerald-600 font-semibold">Target Divisi (90%) Tercapai</span>';
 
       } else {
         // Employee (Budi Santoso)
         if (l1) l1.innerText = 'Sisa Hak Cuti Tahunan';
-        if (i1) i1.innerText = '🌴';
+        if (i1) i1.innerHTML = '<i class="bi bi-calendar2-check-fill text-purple-600 text-base"></i>';
         if (v1) v1.innerText = '10 Hari';
         if (s1) s1.innerHTML = '<span class="text-emerald-600 font-semibold">Dari kuota 12 hari/tahun</span>';
 
         if (l2) l2.innerText = 'Presensi Hari Ini';
-        if (i2) i2.innerText = '📍';
+        if (i2) i2.innerHTML = '<i class="bi bi-geo-alt-fill text-emerald-600 text-base"></i>';
         if (v2) v2.innerText = '08:04 WIB';
         if (s2) s2.innerHTML = '<span class="text-emerald-700 font-bold">Tepat Waktu • GPS Lapangan</span>';
 
         if (l3) l3.innerText = 'Skor KPI Semester II';
-        if (i3) i3.innerText = '⭐';
+        if (i3) i3.innerHTML = '<i class="bi bi-star-fill text-amber-500 text-base"></i>';
         if (v3) v3.innerText = '96 / 100';
         if (s3) s3.innerHTML = '<span class="text-purple-700 font-bold">Predikat: Istimewa (Grade A)</span>';
 
         if (l4) l4.innerText = 'Estimasi THP Bersih';
-        if (i4) i4.innerText = '💳';
+        if (i4) i4.innerHTML = '<i class="bi bi-wallet2 text-emerald-600 text-base"></i>';
         if (v4) v4.innerText = 'Rp 9.076.600';
         if (s4) s4.innerHTML = '<span class="text-emerald-600 font-semibold">Slip November Siap Transfer</span>';
       }
@@ -6159,14 +5572,35 @@ function renderPaginationControls(totalPages) {
 
     // --- 4. AUTHENTICATION (LOGIN, REGISTER, LOGOUT) ---
     function checkAuthStatus() {
+      const welcomeScreen = document.getElementById('welcomeScreen');
       const authScreen = document.getElementById('authScreen');
+      const appLayout = document.getElementById('appMainLayout');
+
       if (!appState.currentUser) {
-        authScreen.classList.remove('hidden');
+        if (welcomeScreen) welcomeScreen.classList.remove('hidden');
+        if (authScreen) authScreen.classList.add('hidden');
+        if (appLayout) appLayout.classList.add('hidden');
       } else {
-        authScreen.classList.add('hidden');
+        if (welcomeScreen) welcomeScreen.classList.add('hidden');
+        if (authScreen) authScreen.classList.add('hidden');
+        if (appLayout) appLayout.classList.remove('hidden');
         renderUserProfile();
         applyRoleVisibility();
       }
+    }
+
+    function openLoginModal(role = null) {
+      if (role) {
+        quickLogin(role);
+        return;
+      }
+      const authScreen = document.getElementById('authScreen');
+      if (authScreen) authScreen.classList.remove('hidden');
+    }
+
+    function closeLoginModal() {
+      const authScreen = document.getElementById('authScreen');
+      if (authScreen) authScreen.classList.add('hidden');
     }
 
     function toggleAuthTab(tab) {
@@ -6232,9 +5666,10 @@ function renderPaginationControls(totalPages) {
     function handleLogout() {
       appState.currentUser = null;
       saveState();
-      document.getElementById('userDropdownMenu').classList.add('hidden');
+      document.getElementById('userDropdownMenu')?.classList.add('hidden');
       checkAuthStatus();
-      showToast("Anda telah berhasil keluar (Logged Out).");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast("Anda telah keluar dan kembali ke Halaman Welcome.", "👋");
     }
 
     function setRole(role) {
@@ -8233,7 +7668,7 @@ function renderPaginationControls(totalPages) {
     <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto">
       <div class="px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg">📄</div>
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg"><i class="bi bi-file-earmark-pdf-fill"></i></div>
           <div>
             <h3 class="font-extrabold text-base text-slate-900">Bukti Pemotongan Pajak Penghasilan Pasal 21 (Formulir 1721-A1)</h3>
             <p class="text-xs text-slate-500">Standar Resmi Direktorat Jenderal Pajak RI • Kepatuhan PP No. 58 Tahun 2023</p>
@@ -8251,7 +7686,7 @@ function renderPaginationControls(totalPages) {
         <div class="flex items-center gap-2">
           <button onclick="closeModal('form1721A1Modal')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-100 transition">Tutup</button>
           <button onclick="window.print()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition">
-            <span>🖨️</span> Cetak / Simpan PDF 1721-A1
+            <i class="bi bi-printer-fill mr-1"></i> Cetak / Simpan PDF 1721-A1
           </button>
         </div>
       </div>
