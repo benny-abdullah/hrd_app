@@ -1201,48 +1201,68 @@
       </section>
 
       <!-- ================= TAB: STRUKTUR ORGANISASI (ORG CHART) ================= -->
+      <!-- ================= TAB 3: STRUKTUR ORGANISASI & ORG CHART INTERAKTIF DENGAN CRUD & UPLOAD FOTO ================= -->
       <section id="tab-orgchart" class="tab-content space-y-5">
         <!-- Header & Action Toolbar -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-2">
-              <span class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 font-bold text-xs uppercase tracking-wider">Multi-Level Hierarchy</span>
-              <span class="text-xs text-slate-400 font-mono">BOD &rarr; GM &rarr; Manager &rarr; Supervisor &rarr; Staff</span>
+              <span class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs uppercase tracking-wider">
+                <i class="bi bi-diagram-3-fill mr-1"></i> Multi-Level Hierarchy
+              </span>
+              <span class="text-xs text-slate-400 font-mono">Level 1 (BOD) &rarr; Level 2 (Divisi) &rarr; Level 3 (Manager) &rarr; Level 4 (Spv) &rarr; Level 5 (Staff)</span>
             </div>
-            <h2 class="text-lg font-black text-slate-900 mt-1">Struktur Organisasi Hierarkis & Org Chart Korporasi</h2>
-            <p class="text-xs text-slate-500">Pemetaan visual rantai komando, hierarki pelaporan, span of control, dan unit kerja multi-holding PT Nusantara Solusi.</p>
+            <h2 class="text-lg font-black text-slate-900 mt-1">Struktur Organisasi Hierarkis & Manajemen Posisi</h2>
+            <p class="text-xs text-slate-500">Pemetaan visual rantai komando, pengelolaan data jabatan, upload foto pejabat, dan kontrol hierarki multi-holding.</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button onclick="openModal('orgChartModal')" class="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-xs">
-              <span>🔍</span> Buka Modal Layar Penuh
+            <button onclick="openOrgNodeModal('add')" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-2 transition">
+              <i class="bi bi-person-plus-fill"></i> Tambah Posisi / Node
             </button>
-            <button onclick="printOrgChartReport()" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-xs">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-              Cetak Bagan Organisasi
+            <button onclick="toggleOrgChartView()" id="orgViewToggleBtn" class="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-2 transition">
+              <i class="bi bi-table"></i> Tampilan Tabel
+            </button>
+            <button onclick="openModal('orgChartModal')" class="px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-xs">
+              <i class="bi bi-arrows-fullscreen"></i> Layar Penuh
+            </button>
+            <button onclick="printOrgChartReport()" class="px-3.5 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-xs">
+              <i class="bi bi-printer-fill"></i> Cetak Bagan
             </button>
           </div>
         </div>
 
-        <!-- Metric Summary Cards -->
+        <!-- Metric Summary Cards (Live Calculated) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Personel Grup</span>
-            <div class="text-2xl font-black text-slate-900 mt-1">1,248</div>
-            <span class="text-[10px] text-emerald-600 font-semibold">12 Pegawai Inti Aktif</span>
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Total Posisi Jabatan</span>
+              <i class="bi bi-briefcase-fill text-indigo-600 text-sm"></i>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="orgStatTotal">11</div>
+            <span class="text-[10px] text-emerald-600 font-semibold" id="orgStatActive">11 Posisi Terisi Aktif</span>
           </div>
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tingkat Hierarki</span>
-            <div class="text-2xl font-black text-indigo-600 mt-1">5 Level</div>
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Tingkat Hierarki</span>
+              <i class="bi bi-diagram-2 text-indigo-600 text-sm"></i>
+            </div>
+            <div class="text-2xl font-black text-indigo-600">5 Level</div>
             <span class="text-[10px] text-slate-500 font-semibold">BOD s.d. Frontline Staff</span>
           </div>
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Divisi & Departemen</span>
-            <div class="text-2xl font-black text-slate-900 mt-1">5 Divisi</div>
-            <span class="text-[10px] text-slate-500 font-semibold">Ops, HRD, Finance, IT, GA</span>
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Divisi & Departemen</span>
+              <i class="bi bi-buildings text-indigo-600 text-sm"></i>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="orgStatDepts">5 Divisi</div>
+            <span class="text-[10px] text-slate-500 font-semibold" id="orgStatDeptsList">Direksi, HR, Ops, Finance, IT</span>
           </div>
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rata-rata Span of Control</span>
-            <div class="text-2xl font-black text-purple-600 mt-1">1 : 4</div>
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Rata-rata Span of Control</span>
+              <i class="bi bi-people-fill text-purple-600 text-sm"></i>
+            </div>
+            <div class="text-2xl font-black text-purple-600" id="orgStatSpan">1 : 4</div>
             <span class="text-[10px] text-emerald-600 font-semibold">Rasio Ideal Manajemen</span>
           </div>
         </div>
@@ -1251,172 +1271,63 @@
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-3">
             <div class="relative w-64">
-              <input type="text" id="orgChartSearch" onkeyup="filterOrgChartNodes()" placeholder="Cari posisi atau nama pegawai..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" id="orgChartSearch" onkeyup="filterOrgChartNodes()" placeholder="Cari posisi atau nama pejabat..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition" />
+              <i class="bi bi-search text-slate-400 absolute left-3 top-2.5 text-xs"></i>
             </div>
-            <select id="orgChartEntitySelect" onchange="filterOrgChartEntity()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="orgChartEntitySelect" onchange="filterOrgChartNodes()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer">
               <option value="all">Semua Entitas Bisnis</option>
-              <option value="holding">Holding: PT Nusantara Solusi</option>
-              <option value="logistik">Subsidiary: PT Logistik Express</option>
-              <option value="retail">Subsidiary: PT Retail Maju</option>
+              <option value="PT Nusantara Solusi (Holding)">Holding: PT Nusantara Solusi</option>
+              <option value="PT Logistik Express">Subsidiary: PT Logistik Express</option>
+              <option value="PT Retail Maju">Subsidiary: PT Retail Maju</option>
+            </select>
+            <select id="orgChartDeptSelect" onchange="filterOrgChartNodes()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer">
+              <option value="all">Semua Departemen</option>
+              <option value="Direksi">Direksi</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Operations">Operations</option>
+              <option value="Finance">Finance</option>
+              <option value="Information Technology">Information Technology</option>
             </select>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[11px] text-slate-400">💡 Klik kartu untuk membuka Personal Dossier Pegawai</span>
+            <span class="text-[11px] text-slate-400 flex items-center gap-1"><i class="bi bi-info-circle"></i> Klik kartu node untuk edit posisi atau unggah foto</span>
           </div>
         </div>
 
-        <!-- Visual Org Chart Tree -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <!-- VIEW 1: DYNAMIC VISUAL TREE CONTAINER -->
+        <div id="orgChartTreeView" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
           <div class="min-w-[900px] flex flex-col items-center space-y-8 py-4" id="mainOrgChartTreeContainer">
-            
-            <!-- Level 1: BOD -->
-            <div class="flex flex-col items-center org-node" data-name="Bambang Soediro" data-role="Direktur Utama">
-              <div class="px-6 py-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-lg border border-slate-800 text-center w-80 cursor-pointer hover:scale-102 transition transform">
-                <span class="px-2.5 py-0.5 rounded-full bg-white/10 text-indigo-300 font-bold text-[9px] uppercase tracking-wider">Level 1 - Board of Directors</span>
-                <div class="font-black text-base mt-1">Bambang Soediro, M.B.A.</div>
-                <div class="text-xs text-slate-300">Direktur Utama (President Director / CEO)</div>
-                <div class="text-[10px] text-indigo-300 font-mono mt-1">NIP: DIR-001 | PT Nusantara Solusi Holding</div>
-              </div>
-              <div class="w-0.5 h-8 bg-slate-300"></div>
+            <!-- Dynamic tree nodes rendered via renderOrgChart() -->
+          </div>
+        </div>
+
+        <!-- VIEW 2: DYNAMIC MANAGEMENT TABLE CONTAINER (TOGGLEABLE) -->
+        <div id="orgChartTableView" class="hidden bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+              <i class="bi bi-list-task text-rose-600"></i> Tabel Daftar Posisi & Rantai Komando
             </div>
-
-            <!-- Level 2: Directorate Level -->
-            <div class="flex flex-col items-center w-full">
-              <div class="grid grid-cols-2 gap-20 relative">
-                <div class="absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300 -translate-y-px"></div>
-                
-                <!-- Left: People & HR -->
-                <div class="flex flex-col items-center org-node" data-name="Sarah Wijaya" data-role="HR Director">
-                  <div class="w-0.5 h-6 bg-slate-300"></div>
-                  <div onclick="viewEmployeeDetail(2)" class="p-4 bg-white rounded-2xl border-2 border-rose-500 shadow-md text-center w-72 hover:shadow-lg transition cursor-pointer">
-                    <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[9px] uppercase tracking-wider">Level 2 - Directorate</span>
-                    <div class="font-black text-sm text-slate-900 mt-1">Sarah Wijaya, S.Psi., CHRP</div>
-                    <div class="text-xs font-semibold text-rose-600">Head of Human Resources & GA</div>
-                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">NIP: EMP-003 | Span of Control: 2 Divisi</div>
-                  </div>
-                  <div class="w-0.5 h-8 bg-slate-300"></div>
-                </div>
-
-                <!-- Right: Operations & Supply Chain -->
-                <div class="flex flex-col items-center org-node" data-name="Bambang Hermanto" data-role="Operations Director">
-                  <div class="w-0.5 h-6 bg-slate-300"></div>
-                  <div class="p-4 bg-white rounded-2xl border-2 border-indigo-500 shadow-md text-center w-72 hover:shadow-lg transition cursor-pointer">
-                    <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[9px] uppercase tracking-wider">Level 2 - Directorate</span>
-                    <div class="font-black text-sm text-slate-900 mt-1">Ir. Bambang Hermanto</div>
-                    <div class="text-xs font-semibold text-indigo-600">Head of Operations & Logistics</div>
-                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">NIP: DIR-002 | Span of Control: 3 Site</div>
-                  </div>
-                  <div class="w-0.5 h-8 bg-slate-300"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Level 3: Middle Management (Line Managers) -->
-            <div class="flex flex-col items-center w-full">
-              <div class="grid grid-cols-3 gap-8 relative max-w-4xl">
-                <div class="absolute top-0 left-1/6 right-1/6 h-0.5 bg-slate-300 -translate-y-px"></div>
-
-                <!-- HR Operations Manager -->
-                <div class="flex flex-col items-center org-node" data-name="Maya Putri" data-role="HR Manager">
-                  <div class="w-0.5 h-6 bg-slate-300"></div>
-                  <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-center w-56 hover:border-indigo-400 transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold text-[9px]">Level 3: Manager</span>
-                    <div class="font-bold text-xs text-slate-900 mt-0.5">Maya Putri, S.I.Kom.</div>
-                    <div class="text-[11px] text-slate-500">HR Operations & Talent</div>
-                    <div class="text-[9px] text-slate-400">Atasan: Sarah Wijaya</div>
-                  </div>
-                </div>
-
-                <!-- Operations Manager -->
-                <div class="flex flex-col items-center org-node" data-name="Hendro Susilo" data-role="Operations Manager">
-                  <div class="w-0.5 h-6 bg-slate-300"></div>
-                  <div onclick="viewEmployeeDetail(1)" class="p-3 bg-indigo-50/60 rounded-xl border-2 border-indigo-400 shadow-sm text-center w-60 hover:shadow-md transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold text-[9px]">Level 3: Manager</span>
-                    <div class="font-black text-xs text-indigo-950 mt-0.5">Hendro Susilo, S.T.</div>
-                    <div class="text-[11px] font-semibold text-indigo-700">Operations Manager (Fleet & Site)</div>
-                    <div class="text-[9px] text-indigo-500 font-mono">Bawahan Langsung: 4 Staf</div>
-                  </div>
-                  <div class="w-0.5 h-8 bg-indigo-400"></div>
-                </div>
-
-                <!-- Finance Manager -->
-                <div class="flex flex-col items-center org-node" data-name="Dian Lestari" data-role="Finance Manager">
-                  <div class="w-0.5 h-6 bg-slate-300"></div>
-                  <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-center w-56 hover:border-indigo-400 transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold text-[9px]">Level 3: Manager</span>
-                    <div class="font-bold text-xs text-slate-900 mt-0.5">Dian Lestari, S.E., Ak.</div>
-                    <div class="text-[11px] text-slate-500">Finance & Payroll Manager</div>
-                    <div class="text-[9px] text-slate-400">Atasan: Bambang Soediro</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Level 4: Supervisory Level -->
-            <div class="flex flex-col items-center">
-              <div class="flex flex-col items-center org-node" data-name="Ahmad Fauzi" data-role="Field Supervisor">
-                <div onclick="viewEmployeeDetail(3)" class="p-3 bg-amber-50/70 rounded-xl border border-amber-300 shadow-xs text-center w-64 hover:border-amber-400 transition cursor-pointer">
-                  <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[9px]">Level 4: Supervisor</span>
-                  <div class="font-bold text-xs text-slate-900 mt-0.5">Ahmad Fauzi</div>
-                  <div class="text-[11px] text-amber-800 font-medium">Field Operations Supervisor</div>
-                  <div class="text-[9px] text-slate-500 font-mono">Cikarang Industrial Hub | Lead Level 1</div>
-                </div>
-                <div class="w-0.5 h-8 bg-amber-300"></div>
-              </div>
-            </div>
-
-            <!-- Level 5: Technical Staff & Frontline Workers -->
-            <div class="flex flex-col items-center w-full">
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 relative max-w-5xl">
-                <div class="absolute top-0 left-1/8 right-1/8 h-0.5 bg-amber-300 -translate-y-px"></div>
-
-                <!-- Budi Santoso -->
-                <div class="flex flex-col items-center org-node" data-name="Budi Santoso" data-role="Senior Field Technician">
-                  <div class="w-0.5 h-6 bg-amber-300"></div>
-                  <div onclick="viewEmployeeDetail(0)" class="p-3 bg-white rounded-xl border-2 border-emerald-400 shadow-sm text-center w-52 hover:shadow-md transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[9px]">Level 5: Senior Staff</span>
-                    <div class="font-black text-xs text-slate-900 mt-1">Budi Santoso</div>
-                    <div class="text-[10px] text-emerald-700 font-semibold">Senior Field Technician</div>
-                    <div class="text-[9px] text-slate-400 font-mono mt-0.5">NIP: EMP-001 | PKWTT Tetap</div>
-                  </div>
-                </div>
-
-                <!-- Fajar Nugraha -->
-                <div class="flex flex-col items-center org-node" data-name="Fajar Nugraha" data-role="Field Technician">
-                  <div class="w-0.5 h-6 bg-amber-300"></div>
-                  <div onclick="viewEmployeeDetail(4)" class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-center w-52 hover:border-indigo-400 transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold text-[9px]">Level 5: Staff</span>
-                    <div class="font-bold text-xs text-slate-900 mt-1">Fajar Nugraha</div>
-                    <div class="text-[10px] text-slate-600 font-medium">Field Technician</div>
-                    <div class="text-[9px] text-slate-400 font-mono mt-0.5">NIP: EMP-005 | PKWT Kontrak</div>
-                  </div>
-                </div>
-
-                <!-- Hadi Purnomo -->
-                <div class="flex flex-col items-center org-node" data-name="Hadi Purnomo" data-role="Logistics Driver">
-                  <div class="w-0.5 h-6 bg-amber-300"></div>
-                  <div onclick="viewEmployeeDetail(5)" class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-center w-52 hover:border-indigo-400 transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold text-[9px]">Level 5: Staff</span>
-                    <div class="font-bold text-xs text-slate-900 mt-1">Hadi Purnomo</div>
-                    <div class="text-[10px] text-slate-600 font-medium">Logistics & Fleet Driver</div>
-                    <div class="text-[9px] text-slate-400 font-mono mt-0.5">NIP: EMP-006 | SIM B2 Umum</div>
-                  </div>
-                </div>
-
-                <!-- Siti Nurhaliza -->
-                <div class="flex flex-col items-center org-node" data-name="Siti Nurhaliza" data-role="Warehouse Staff">
-                  <div class="w-0.5 h-6 bg-amber-300"></div>
-                  <div onclick="viewEmployeeDetail(6)" class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-center w-52 hover:border-indigo-400 transition cursor-pointer">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold text-[9px]">Level 5: Staff</span>
-                    <div class="font-bold text-xs text-slate-900 mt-1">Siti Nurhaliza</div>
-                    <div class="text-[10px] text-slate-600 font-medium">Warehouse Staff & GA</div>
-                    <div class="text-[9px] text-slate-400 font-mono mt-0.5">NIP: EMP-007 | Inventaris APD</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            <span class="text-xs text-slate-500 font-mono" id="orgTableCountBadge">Total 11 Posisi</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-3 text-center">No</th>
+                  <th class="py-3 px-3">Pejabat & Foto</th>
+                  <th class="py-3 px-3">Jabatan / Posisi</th>
+                  <th class="py-3 px-3 text-center">Tingkat Level</th>
+                  <th class="py-3 px-3">Entitas & Dept</th>
+                  <th class="py-3 px-3">Atasan Langsung</th>
+                  <th class="py-3 px-3 text-center">Span of Control</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                  <th class="py-3 px-3 text-center">Aksi Manajemen</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100" id="orgChartTableBody">
+                <!-- Dynamically rendered via renderOrgChartTable() -->
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -2873,127 +2784,40 @@
   <!-- ================= MODALS (CRUD & PREVIEW) ================= -->
 
   <!-- MODAL: INTERACTIVE ORGANIZATION CHART -->
+  <!-- ================= MODAL: INTERACTIVE ORGANIZATION CHART (FULLSCREEN DYNAMIC) ================= -->
   <div id="orgChartModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden no-print">
     <div class="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto">
       <div class="px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">🌿</div>
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
+            <i class="bi bi-diagram-3-fill"></i>
+          </div>
           <div>
-            <h3 class="font-extrabold text-base text-slate-900">Bagan Struktur Organisasi & Rantai Komando</h3>
-            <p class="text-xs text-slate-500">Visualisasi hierarki kepemimpinan, pelaporan atasan-bawahan, dan multi-unit bisnis PT Nusantara Solusi Corpora.</p>
+            <h3 class="font-extrabold text-base text-slate-900">Bagan Struktur Organisasi & Rantai Komando (Layar Penuh)</h3>
+            <p class="text-xs text-slate-500">Visualisasi hierarki kepemimpinan, foto pejabat, pelaporan atasan-bawahan, dan multi-unit bisnis</p>
           </div>
         </div>
         <button onclick="closeModal('orgChartModal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl px-2 transition">&times;</button>
       </div>
 
       <div class="flex-1 overflow-y-auto overflow-x-auto p-6 bg-slate-50">
-        <!-- Visual Org Chart Tree -->
-        <div class="min-w-[800px] flex flex-col items-center space-y-8 py-4">
-          
-          <!-- Level 1: BOD -->
-          <div class="flex flex-col items-center">
-            <div class="px-6 py-3.5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-md border border-slate-800 text-center w-72">
-              <span class="px-2 py-0.5 rounded-full bg-white/10 text-indigo-300 font-bold text-[9px] uppercase tracking-wider">Board of Directors (BOD)</span>
-              <div class="font-black text-sm mt-1">Bambang Soediro, M.B.A.</div>
-              <div class="text-[11px] text-slate-300">Direktur Utama (President Director)</div>
-            </div>
-            <div class="w-0.5 h-8 bg-slate-300"></div>
-          </div>
-
-          <!-- Level 2: Directorate -->
-          <div class="flex flex-col items-center w-full">
-            <div class="grid grid-cols-2 gap-16 relative">
-              <div class="absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300 -translate-y-px"></div>
-              
-              <!-- Left: People & HR -->
-              <div class="flex flex-col items-center">
-                <div class="w-0.5 h-6 bg-slate-300"></div>
-                <div class="p-4 bg-white rounded-2xl border-2 border-rose-500 shadow-sm text-center w-64 hover:shadow-md transition">
-                  <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[9px] uppercase">Corporate Directorate</span>
-                  <div class="font-extrabold text-sm text-slate-900 mt-1">Sarah Wijaya, M.M.</div>
-                  <div class="text-[11px] text-slate-500">Head of People & Corporate Governance</div>
-                  <div class="text-[10px] text-emerald-600 font-bold mt-1">PT Nusantara Solusi (Holding)</div>
-                </div>
-                <div class="w-0.5 h-8 bg-slate-300"></div>
-              </div>
-
-              <!-- Right: Operations -->
-              <div class="flex flex-col items-center">
-                <div class="w-0.5 h-6 bg-slate-300"></div>
-                <div class="p-4 bg-white rounded-2xl border-2 border-blue-500 shadow-sm text-center w-64 hover:shadow-md transition">
-                  <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[9px] uppercase">Operations Directorate</span>
-                  <div class="font-extrabold text-sm text-slate-900 mt-1">Rico Fernando, S.T.</div>
-                  <div class="text-[11px] text-slate-500">Operations & Supply Chain Director</div>
-                  <div class="text-[10px] text-blue-600 font-bold mt-1">PT Logistik Express Nusantara</div>
-                </div>
-                <div class="w-0.5 h-8 bg-slate-300"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Level 3: Department Managers -->
-          <div class="grid grid-cols-3 gap-8 w-full max-w-4xl">
-            <!-- HR Staff & Tax -->
-            <div class="p-3.5 bg-white rounded-2xl border border-slate-200 text-center shadow-xs">
-              <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[9px]">Finance & Tax Lead</span>
-              <div class="font-bold text-xs text-slate-900 mt-1">Dewi Kartika</div>
-              <div class="text-[10px] text-slate-500">Finance & Tax Specialist</div>
-            </div>
-
-            <!-- Operations Manager (Hendro Susilo) -->
-            <div class="p-3.5 bg-amber-50 rounded-2xl border-2 border-amber-400 text-center shadow-sm relative">
-              <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-amber-600 text-white font-bold text-[9px] uppercase">Line Manager Unit</span>
-              <div class="font-extrabold text-xs text-slate-900 mt-1">Hendro Susilo</div>
-              <div class="text-[10px] text-slate-600">Operations & Logistics Manager</div>
-              <div class="text-[9px] text-amber-800 font-bold mt-0.5">Membawahi 4 Tim Lapangan</div>
-            </div>
-
-            <!-- Commercial / Tech Lead -->
-            <div class="p-3.5 bg-white rounded-2xl border border-slate-200 text-center shadow-xs">
-              <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[9px]">IT Engineering Lead</span>
-              <div class="font-bold text-xs text-slate-900 mt-1">Budi Hartono</div>
-              <div class="text-[10px] text-slate-500">Head of Information Technology</div>
-            </div>
-          </div>
-
-          <!-- Level 4: Subordinates of Hendro Susilo (Operations Team) -->
-          <div class="w-full max-w-3xl pt-2 border-t-2 border-dashed border-amber-300 flex flex-col items-center">
-            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase mb-4 tracking-wider">Tim Kerja Divisi Operasional (Supervisi Hendro Susilo)</span>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
-              <div class="p-3 bg-white rounded-xl border border-slate-200 text-center hover:border-rose-400 transition">
-                <div class="w-7 h-7 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center text-xs mx-auto mb-1">BS</div>
-                <div class="font-bold text-xs text-slate-900">Budi Santoso</div>
-                <div class="text-[10px] text-slate-500">Sr. Field Technician</div>
-                <span class="text-[9px] font-mono text-emerald-700 font-bold">Site Cikarang</span>
-              </div>
-              <div class="p-3 bg-white rounded-xl border border-slate-200 text-center hover:border-rose-400 transition">
-                <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs mx-auto mb-1">AF</div>
-                <div class="font-bold text-xs text-slate-900">Ahmad Fauzi</div>
-                <div class="text-[10px] text-slate-500">Warehouse Spv</div>
-                <span class="text-[9px] font-mono text-blue-700 font-bold">Gudang Logistik</span>
-              </div>
-              <div class="p-3 bg-white rounded-xl border border-slate-200 text-center hover:border-rose-400 transition">
-                <div class="w-7 h-7 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs mx-auto mb-1">FN</div>
-                <div class="font-bold text-xs text-slate-900">Fajar Nugraha</div>
-                <div class="text-[10px] text-slate-500">QC Inspector</div>
-                <span class="text-[9px] font-mono text-purple-700 font-bold">Armada Distribusi</span>
-              </div>
-              <div class="p-3 bg-white rounded-xl border border-slate-200 text-center hover:border-rose-400 transition">
-                <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs mx-auto mb-1">HP</div>
-                <div class="font-bold text-xs text-slate-900">Hadi Purnomo</div>
-                <div class="text-[10px] text-slate-500">Heavy Fleet Driver</div>
-                <span class="text-[9px] font-mono text-slate-700 font-bold">Armada Logistik</span>
-              </div>
-            </div>
-          </div>
-
+        <!-- Visual Org Chart Tree (Dynamic) -->
+        <div class="min-w-[800px] flex flex-col items-center space-y-8 py-4" id="modalOrgChartTreeContainer">
+          <!-- Dynamically rendered via renderOrgChart() -->
         </div>
       </div>
 
-      <div class="px-6 py-3 border-t border-slate-200 bg-white flex items-center justify-between shrink-0 text-xs text-slate-500">
-        <span>ISO 27001 Multi-Tier Organizational Hierarchy Matrix</span>
-        <button onclick="closeModal('orgChartModal')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition">Tutup Bagan</button>
+      <div class="px-6 py-3 border-t border-slate-200 bg-white flex items-center justify-between shrink-0">
+        <span class="text-[11px] text-slate-400 font-mono">Kode Dokumen: ISO-9001-ORG-CORP • Updated Real-Time</span>
+        <div class="flex items-center gap-2">
+          <button onclick="openOrgNodeModal('add')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-xs">
+            <i class="bi bi-person-plus-fill"></i> Tambah Posisi
+          </button>
+          <button onclick="closeModal('orgChartModal')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-100 transition">Tutup</button>
+          <button onclick="printOrgChartReport()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition">
+            <i class="bi bi-printer-fill"></i> Cetak Bagan Resmi
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -3768,6 +3592,19 @@
         { id: "TK-8021", subject: "Penyesuaian BPJS Kesehatan Bulan Ini", author: "Budi Santoso", prio: "TINGGI", status: "OPEN" },
         { id: "TK-8019", subject: "Permohonan Surat Keterangan Visa Jepang", author: "Dewi Kartika", prio: "NORMAL", status: "RESOLVED" }
       ],
+      orgNodes: [
+        { id: "org-1", name: "Bambang Soediro, M.B.A.", nip: "DIR-001", title: "Direktur Utama (President Director / CEO)", level: 1, dept: "Direksi", company: "PT Nusantara Solusi (Holding)", parentId: "", span: "5 Divisi Korporat", status: "Active", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-2", name: "Sarah Wijaya, S.Psi., CHRP", nip: "EMP-003", title: "Head of Human Resources & Corporate Affairs", level: 2, dept: "Human Resources", company: "PT Nusantara Solusi (Holding)", parentId: "org-1", span: "2 Divisi (HR & GA)", status: "Active", photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-3", name: "Ir. Bambang Hermanto", nip: "DIR-002", title: "Head of Operations & Supply Chain", level: 2, dept: "Operations", company: "PT Logistik Express", parentId: "org-1", span: "3 Area Site / Fleet", status: "Active", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-4", name: "Maya Putri, S.I.Kom.", nip: "EMP-2025-0105", title: "HR Operations & Talent Manager", level: 3, dept: "Human Resources", company: "PT Nusantara Solusi (Holding)", parentId: "org-2", span: "2 Staf HR", status: "Active", photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-5", name: "Hendro Susilo, S.T.", nip: "EMP-002", title: "Operations Manager (Fleet & Site)", level: 3, dept: "Operations", company: "PT Logistik Express", parentId: "org-3", span: "4 Staf Operasional", status: "Active", photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-6", name: "Dian Lestari, S.E., Ak.", nip: "EMP-2023-0041", title: "Finance & Payroll Manager", level: 3, dept: "Finance", company: "PT Nusantara Solusi (Holding)", parentId: "org-1", span: "2 Staf Keuangan", status: "Active", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-7", name: "Anton Wijoyo, S.E.", nip: "EMP-005", title: "Warehouse & Fleet Supervisor", level: 4, dept: "Operations", company: "PT Logistik Express", parentId: "org-5", span: "2 Staf Lapangan", status: "Active", photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-8", name: "Rina Melati, S.Kom.", nip: "EMP-2024-0099", title: "IT Systems & Infrastructure Supervisor", level: 4, dept: "Information Technology", company: "PT Nusantara Solusi (Holding)", parentId: "org-5", span: "2 Staf Teknis", status: "Active", photo: "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-9", name: "Budi Santoso", nip: "EMP-2024-0082", title: "Sr. Field Technician (Site Cikarang)", level: 5, dept: "Operations", company: "PT Logistik Express", parentId: "org-7", span: "Pelaksana", status: "Active", photo: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-10", name: "Kevin Sanjaya", nip: "EMP-2026-0012", title: "Fullstack Engineer (Core Cloud)", level: 5, dept: "Information Technology", company: "PT Nusantara Solusi (Holding)", parentId: "org-8", span: "Pelaksana", status: "Active", photo: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face" },
+        { id: "org-11", name: "Siti Rahmawati", nip: "EMP-2025-0130", title: "HR Compensation & Benefit Specialist", level: 5, dept: "Human Resources", company: "PT Nusantara Solusi (Holding)", parentId: "org-4", span: "Pelaksana", status: "Active", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face" }
+      ],
       users: [
         { id: "usr-001", username: "sarah.wijaya", name: "Sarah Wijaya, S.Psi., CHRP", nip: "EMP-003", email: "sarah.wijaya@nusantara.id", role: "admin", company: "PT Nusantara Solusi (Holding)", branch: "Jakarta Head Office (Pusat)", status: "Active", twoFactor: true, lastLogin: "17 Nov 2026, 11:22 WIB", ip: "192.168.1.104", avatar: "SW" },
         { id: "usr-002", username: "hendro.susilo", name: "Hendro Susilo, S.T.", nip: "EMP-002", email: "hendro.susilo@logistik.id", role: "manager", company: "PT Logistik Express", branch: "Jakarta Head Office (Pusat)", status: "Active", twoFactor: true, lastLogin: "17 Nov 2026, 10:45 WIB", ip: "192.168.1.112", avatar: "HS" },
@@ -3786,6 +3623,10 @@
         appState = DEFAULT_DATA;
       }
       localStorage.setItem('talenta_app_state', JSON.stringify(appState));
+    }
+    if (!appState.orgNodes || appState.orgNodes.length === 0) {
+      appState.orgNodes = DEFAULT_DATA.orgNodes;
+      saveState();
     }
     if (!appState.users || appState.users.length === 0) {
       appState.users = DEFAULT_DATA.users;
@@ -5146,6 +4987,7 @@ function renderPaginationControls(totalPages) {
       showToast(`Evaluasi kinerja "${appState.employees[idx].name}" berhasil diperbarui!`, "🌟");
 
       renderPerformance();
+      renderOrgChart();
     }
 
         // --- 3. PRINT REPORTS GENERATOR & PREVIEW ENGINE ---
@@ -5802,6 +5644,7 @@ function renderPaginationControls(totalPages) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       const target = document.getElementById('tab-' + tabId);
       if (target) target.classList.add('active');
+      if (tabId === 'orgchart') renderOrgChart();
 
       document.querySelectorAll('.sidebar-btn').forEach(btn => {
         if (btn.getAttribute('data-tab') === tabId) {
@@ -6767,6 +6610,527 @@ function renderPaginationControls(totalPages) {
       renderPerformance();
     });
   
+
+    // =========================================================================
+    // --- 15. MANAJEMEN STRUKTUR ORGANISASI (ORG CHART CRUD & UPLOAD FOTO) ---
+    // =========================================================================
+    let currentOrgViewMode = 'tree'; // 'tree' or 'table'
+    let tempOrgNodePhoto = '';
+
+    function getInitials(name) {
+      if (!name) return 'HR';
+      return name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+    }
+
+    function toggleOrgChartView() {
+      const treeView = document.getElementById('orgChartTreeView');
+      const tableView = document.getElementById('orgChartTableView');
+      const toggleBtn = document.getElementById('orgViewToggleBtn');
+
+      if (currentOrgViewMode === 'tree') {
+        currentOrgViewMode = 'table';
+        if (treeView) treeView.classList.add('hidden');
+        if (tableView) tableView.classList.remove('hidden');
+        if (toggleBtn) toggleBtn.innerHTML = '<i class="bi bi-diagram-3-fill mr-1"></i> Tampilan Bagan Visual';
+      } else {
+        currentOrgViewMode = 'tree';
+        if (treeView) treeView.classList.remove('hidden');
+        if (tableView) tableView.classList.add('hidden');
+        if (toggleBtn) toggleBtn.innerHTML = '<i class="bi bi-table mr-1"></i> Tampilan Tabel';
+      }
+      renderOrgChart();
+    }
+
+    function filterOrgChartNodes() {
+      renderOrgChart();
+    }
+
+    function renderOrgChart() {
+      if (!appState || !appState.orgNodes) return;
+
+      const q = (document.getElementById('orgChartSearch')?.value || '').toLowerCase().trim();
+      const entity = document.getElementById('orgChartEntitySelect')?.value || 'all';
+      const dept = document.getElementById('orgChartDeptSelect')?.value || 'all';
+
+      // 1. Update Metrics
+      const totalNodes = appState.orgNodes.length;
+      const activeNodes = appState.orgNodes.filter(n => n.status === 'Active').length;
+      const uniqueDepts = [...new Set(appState.orgNodes.map(n => n.dept).filter(Boolean))];
+
+      const statTotal = document.getElementById('orgStatTotal');
+      const statActive = document.getElementById('orgStatActive');
+      const statDepts = document.getElementById('orgStatDepts');
+      const statDeptsList = document.getElementById('orgStatDeptsList');
+      const tableBadge = document.getElementById('orgTableCountBadge');
+
+      if (statTotal) statTotal.innerText = totalNodes;
+      if (statActive) statActive.innerText = `${activeNodes} Posisi Terisi Aktif`;
+      if (statDepts) statDepts.innerText = `${uniqueDepts.length} Divisi`;
+      if (statDeptsList) statDeptsList.innerText = uniqueDepts.slice(0, 4).join(', ');
+      if (tableBadge) tableBadge.innerText = `Total ${totalNodes} Posisi Terdaftar`;
+
+      // 2. Filter nodes
+      let filtered = appState.orgNodes.filter(n => {
+        const matchQ = !q || n.name.toLowerCase().includes(q) || n.title.toLowerCase().includes(q) || (n.nip && n.nip.toLowerCase().includes(q));
+        const matchEntity = entity === 'all' || n.company === entity;
+        const matchDept = dept === 'all' || n.dept === dept;
+        return matchQ && matchEntity && matchDept;
+      });
+
+      // 3. Render Tree View
+      const treeContainer = document.getElementById('mainOrgChartTreeContainer');
+      const modalTreeContainer = document.getElementById('modalOrgChartTreeContainer');
+
+      if (treeContainer) {
+        treeContainer.innerHTML = buildOrgTreeHTML(filtered);
+      }
+      if (modalTreeContainer) {
+        modalTreeContainer.innerHTML = buildOrgTreeHTML(filtered);
+      }
+
+      // 4. Render Table View
+      const tableBody = document.getElementById('orgChartTableBody');
+      if (tableBody) {
+        if (filtered.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Tidak ada posisi yang cocok dengan kriteria pencarian.</td></tr>`;
+        } else {
+          tableBody.innerHTML = filtered.map((n, idx) => {
+            const parent = appState.orgNodes.find(p => p.id === n.parentId);
+            const levelBadges = {
+              1: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+              2: 'bg-rose-100 text-rose-800 border-rose-200',
+              3: 'bg-amber-100 text-amber-800 border-amber-200',
+              4: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+              5: 'bg-slate-100 text-slate-800 border-slate-200'
+            };
+            const badgeClass = levelBadges[n.level] || 'bg-slate-100 text-slate-800';
+
+            const photoHtml = n.photo 
+              ? `<img src="${n.photo}" class="w-8 h-8 rounded-full object-cover border border-slate-300 shadow-2xs shrink-0" alt="${n.name}">`
+              : `<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-rose-500 text-white font-bold text-xs flex items-center justify-center shrink-0">${getInitials(n.name)}</div>`;
+
+            return `
+              <tr class="hover:bg-slate-50/80 transition">
+                <td class="py-3 px-3 text-center font-mono text-slate-500">${idx + 1}</td>
+                <td class="py-3 px-3">
+                  <div class="flex items-center gap-2.5">
+                    ${photoHtml}
+                    <div>
+                      <div class="font-bold text-slate-900">${n.name}</div>
+                      <div class="font-mono text-[10px] text-slate-400">NIP: ${n.nip || '-'}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3 px-3">
+                  <div class="font-bold text-slate-800">${n.title}</div>
+                </td>
+                <td class="py-3 px-3 text-center">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+                    Level ${n.level}
+                  </span>
+                </td>
+                <td class="py-3 px-3">
+                  <div class="font-semibold text-slate-700">${n.company}</div>
+                  <div class="text-[10px] text-slate-400">${n.dept}</div>
+                </td>
+                <td class="py-3 px-3">
+                  ${parent ? `<div class="font-semibold text-slate-800">${parent.name}</div><div class="text-[10px] text-slate-400">${parent.title}</div>` : '<span class="text-slate-400 italic font-mono">- (Puncak Hierarki)</span>'}
+                </td>
+                <td class="py-3 px-3 text-center font-mono text-slate-600">${n.span || '-'}</td>
+                <td class="py-3 px-3 text-center">
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${n.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                    ${n.status === 'Active' ? 'Aktif' : 'Lowong'}
+                  </span>
+                </td>
+                <td class="py-3 px-3 text-center">
+                  <div class="flex items-center justify-center gap-1">
+                    <button onclick="openOrgNodeModal('edit', '${n.id}')" class="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit Posisi & Foto">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button onclick="openOrgNodeModal('add', null, '${n.id}')" class="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Tambah Bawahan">
+                      <i class="bi bi-person-plus-fill"></i>
+                    </button>
+                    <button onclick="deleteOrgNode('${n.id}')" class="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Posisi">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function buildOrgNodeCard(node, cardWidth = 'w-72', isRoot = false) {
+      const levelColors = {
+        1: { border: 'border-indigo-600', badge: 'bg-indigo-900/60 text-indigo-300 border-indigo-700/50', bg: 'bg-gradient-to-r from-slate-900 to-indigo-950 text-white', ring: 'ring-indigo-400' },
+        2: { border: 'border-rose-400', badge: 'bg-rose-50 text-rose-700 border-rose-200', bg: 'bg-white text-slate-900', ring: 'ring-rose-400' },
+        3: { border: 'border-amber-300', badge: 'bg-amber-50 text-amber-800 border-amber-200', bg: 'bg-white text-slate-900', ring: 'ring-amber-400' },
+        4: { border: 'border-emerald-300', badge: 'bg-emerald-50 text-emerald-800 border-emerald-200', bg: 'bg-white text-slate-900', ring: 'ring-emerald-400' },
+        5: { border: 'border-slate-300', badge: 'bg-slate-100 text-slate-700 border-slate-200', bg: 'bg-white text-slate-900', ring: 'ring-slate-300' }
+      };
+
+      const styling = levelColors[node.level] || levelColors[5];
+      const isDark = node.level === 1;
+
+      const photoHtml = node.photo 
+        ? `<img src="${node.photo}" class="w-[52px] h-[52px] rounded-full object-cover ring-2 ${styling.ring} shadow-xs mx-auto mb-2" alt="${node.name}">`
+        : `<div class="w-[52px] h-[52px] rounded-full bg-gradient-to-tr from-indigo-500 to-rose-500 text-white font-black text-sm flex items-center justify-center ring-2 ${styling.ring} shadow-xs mx-auto mb-2">${getInitials(node.name)}</div>`;
+
+      return `
+        <div class="org-node flex flex-col items-center group relative" data-id="${node.id}" data-name="${node.name}" data-title="${node.title}">
+          <div class="p-4 ${styling.bg} rounded-2xl border-2 ${styling.border} shadow-sm hover:shadow-md text-center ${cardWidth} transition-all duration-200 relative">
+            
+            <!-- Quick Action Hover Bar -->
+            <div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onclick="event.stopPropagation(); openOrgNodeModal('edit', '${node.id}')" class="p-1 rounded-md ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-indigo-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} text-xs" title="Edit Posisi & Foto">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <button onclick="event.stopPropagation(); openOrgNodeModal('add', null, '${node.id}')" class="p-1 rounded-md ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-emerald-300' : 'bg-slate-100 hover:bg-slate-200 text-emerald-700'} text-xs" title="Tambah Bawahan">
+                <i class="bi bi-person-plus-fill"></i>
+              </button>
+              <button onclick="event.stopPropagation(); deleteOrgNode('${node.id}')" class="p-1 rounded-md ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-rose-300' : 'bg-slate-100 hover:bg-slate-200 text-rose-600'} text-xs" title="Hapus Posisi">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+
+            <!-- Avatar & Badge -->
+            <div class="relative inline-block">
+              ${photoHtml}
+              <span class="w-3.5 h-3.5 rounded-full ${node.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-400'} border-2 ${isDark ? 'border-slate-900' : 'border-white'} absolute bottom-2 right-0" title="Status: ${node.status}"></span>
+            </div>
+
+            <div class="mb-1">
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${styling.badge}">
+                Level ${node.level}: ${node.level === 1 ? 'BOD' : (node.level === 2 ? 'Direktorat' : (node.level === 3 ? 'Manager' : (node.level === 4 ? 'Supervisor' : 'Pelaksana')))}
+              </span>
+            </div>
+
+            <h4 class="font-black text-sm ${isDark ? 'text-white' : 'text-slate-900'} leading-tight mt-1 line-clamp-1">${node.name}</h4>
+            <div class="text-xs font-semibold ${isDark ? 'text-indigo-300' : 'text-indigo-600'} mt-0.5 line-clamp-1">${node.title}</div>
+            <div class="text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-400'} font-mono mt-1">NIP: ${node.nip || '-'} • ${node.company.replace('PT ', '')}</div>
+
+            ${node.span ? `<div class="mt-2 pt-2 border-t ${isDark ? 'border-slate-800 text-slate-400' : 'border-slate-100 text-slate-500'} text-[10px] font-mono flex items-center justify-center gap-1"><i class="bi bi-diagram-2 text-indigo-500"></i> ${node.span}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function buildOrgTreeHTML(nodes) {
+      if (!nodes || nodes.length === 0) {
+        return `<div class="p-8 text-center text-slate-400"><i class="bi bi-search text-3xl block mb-2"></i>Tidak ada posisi organisasi yang sesuai dengan filter.</div>`;
+      }
+
+      const l1 = nodes.filter(n => n.level === 1);
+      const l2 = nodes.filter(n => n.level === 2);
+      const l3 = nodes.filter(n => n.level === 3);
+      const l4 = nodes.filter(n => n.level === 4);
+      const l5 = nodes.filter(n => n.level === 5);
+
+      let html = '';
+
+      // Level 1: CEO
+      if (l1.length > 0) {
+        html += `
+          <div class="flex flex-col items-center">
+            <div class="flex flex-wrap items-center justify-center gap-6">
+              ${l1.map(node => buildOrgNodeCard(node, 'w-80', true)).join('')}
+            </div>
+            ${l2.length > 0 ? `<div class="w-0.5 h-8 bg-slate-300"></div>` : ''}
+          </div>
+        `;
+      }
+
+      // Level 2: Directorate / GM
+      if (l2.length > 0) {
+        html += `
+          <div class="flex flex-col items-center w-full">
+            <div class="flex flex-wrap items-center justify-center gap-12 relative px-4">
+              ${l2.length > 1 ? `<div class="absolute top-0 left-1/4 right-1/4 h-0.5 bg-slate-300 -translate-y-px hidden sm:block"></div>` : ''}
+              ${l2.map(node => `
+                <div class="flex flex-col items-center">
+                  <div class="w-0.5 h-6 bg-slate-300"></div>
+                  ${buildOrgNodeCard(node, 'w-72')}
+                  ${l3.length > 0 ? `<div class="w-0.5 h-8 bg-slate-300"></div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Level 3: Managers
+      if (l3.length > 0) {
+        html += `
+          <div class="flex flex-col items-center w-full">
+            <div class="flex flex-wrap items-center justify-center gap-8 relative px-4">
+              ${l3.length > 1 ? `<div class="absolute top-0 left-1/6 right-1/6 h-0.5 bg-slate-300 -translate-y-px hidden sm:block"></div>` : ''}
+              ${l3.map(node => `
+                <div class="flex flex-col items-center">
+                  <div class="w-0.5 h-6 bg-slate-300"></div>
+                  ${buildOrgNodeCard(node, 'w-64')}
+                  ${l4.length > 0 ? `<div class="w-0.5 h-8 bg-slate-300"></div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Level 4: Supervisors
+      if (l4.length > 0) {
+        html += `
+          <div class="flex flex-col items-center w-full">
+            <div class="flex flex-wrap items-center justify-center gap-6 relative px-4">
+              ${l4.map(node => `
+                <div class="flex flex-col items-center">
+                  <div class="w-0.5 h-6 bg-slate-300"></div>
+                  ${buildOrgNodeCard(node, 'w-60')}
+                  ${l5.length > 0 ? `<div class="w-0.5 h-8 bg-slate-300"></div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Level 5: Staff
+      if (l5.length > 0) {
+        html += `
+          <div class="flex flex-col items-center w-full">
+            <div class="flex flex-wrap items-center justify-center gap-5 relative px-4">
+              ${l5.map(node => `
+                <div class="flex flex-col items-center">
+                  <div class="w-0.5 h-6 bg-slate-300"></div>
+                  ${buildOrgNodeCard(node, 'w-56')}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      return html;
+    }
+
+    // Modal CRUD Handlers
+    function openOrgNodeModal(mode = 'add', nodeId = null, parentId = null) {
+      const modal = document.getElementById('orgNodeModal');
+      const titleEl = document.getElementById('orgNodeModalTitle');
+      const deleteBtn = document.getElementById('orgNodeDeleteBtn');
+      const empSelect = document.getElementById('orgNodeEmpSelect');
+      const parentSelect = document.getElementById('orgNodeParent');
+
+      // 1. Populate Employee Dropdown
+      if (empSelect && appState.employees) {
+        empSelect.innerHTML = `<option value="">-- Pilih dari Master Pegawai --</option>` + 
+          appState.employees.map((e, idx) => `<option value="${idx}">${e.name} (${e.nip}) - ${e.pos}</option>`).join('');
+      }
+
+      // 2. Populate Parent Supervisor Dropdown
+      if (parentSelect && appState.orgNodes) {
+        parentSelect.innerHTML = `<option value="">-- Tidak Ada / Level Puncak (CEO) --</option>` +
+          appState.orgNodes
+            .filter(n => n.id !== nodeId) // Prevent self-parent
+            .map(n => `<option value="${n.id}">Level ${n.level}: ${n.name} - ${n.title} (${n.dept})</option>`).join('');
+      }
+
+      tempOrgNodePhoto = '';
+      document.getElementById('orgNodePhotoData').value = '';
+
+      if (mode === 'add') {
+        if (titleEl) titleEl.innerText = 'Tambah Posisi Organisasi Baru';
+        if (deleteBtn) deleteBtn.classList.add('hidden');
+
+        document.getElementById('orgNodeId').value = '';
+        document.getElementById('orgNodeName').value = '';
+        document.getElementById('orgNodeNip').value = '';
+        document.getElementById('orgNodeTitle').value = '';
+        document.getElementById('orgNodeLevel').value = parentId ? '4' : '3';
+        document.getElementById('orgNodeCompany').value = 'PT Nusantara Solusi (Holding)';
+        document.getElementById('orgNodeDept').value = 'Operations';
+        document.getElementById('orgNodeSpan').value = '';
+        document.getElementById('orgNodeStatus').value = 'Active';
+
+        if (parentId && parentSelect) {
+          parentSelect.value = parentId;
+        }
+
+        updateOrgNodePhotoPreview('');
+      } else {
+        const node = appState.orgNodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        if (titleEl) titleEl.innerText = `Edit Posisi: ${node.title}`;
+        if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+        document.getElementById('orgNodeId').value = node.id;
+        document.getElementById('orgNodeName').value = node.name;
+        document.getElementById('orgNodeNip').value = node.nip || '';
+        document.getElementById('orgNodeTitle').value = node.title;
+        document.getElementById('orgNodeLevel').value = node.level || '3';
+        document.getElementById('orgNodeCompany').value = node.company || 'PT Nusantara Solusi (Holding)';
+        document.getElementById('orgNodeDept').value = node.dept || 'Operations';
+        document.getElementById('orgNodeParent').value = node.parentId || '';
+        document.getElementById('orgNodeSpan').value = node.span || '';
+        document.getElementById('orgNodeStatus').value = node.status || 'Active';
+
+        tempOrgNodePhoto = node.photo || '';
+        document.getElementById('orgNodePhotoData').value = tempOrgNodePhoto;
+        updateOrgNodePhotoPreview(tempOrgNodePhoto);
+      }
+
+      openModal('orgNodeModal');
+    }
+
+    function onOrgNodeEmpSelect(empIdx) {
+      if (empIdx === '') return;
+      const emp = appState.employees[parseInt(empIdx)];
+      if (!emp) return;
+
+      document.getElementById('orgNodeName').value = emp.name;
+      document.getElementById('orgNodeNip').value = emp.nip;
+      document.getElementById('orgNodeTitle').value = emp.pos;
+      if (emp.dept) document.getElementById('orgNodeDept').value = emp.dept;
+      if (emp.company) document.getElementById('orgNodeCompany').value = emp.company;
+    }
+
+    function handleOrgNodePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Ukuran file foto maksimal adalah 2MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        tempOrgNodePhoto = base64;
+        document.getElementById('orgNodePhotoData').value = base64;
+        updateOrgNodePhotoPreview(base64);
+        showToast('Foto pejabat berhasil diunggah!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearOrgNodePhoto() {
+      tempOrgNodePhoto = '';
+      document.getElementById('orgNodePhotoData').value = '';
+      const input = document.getElementById('orgNodePhotoInput');
+      if (input) input.value = '';
+      updateOrgNodePhotoPreview('');
+      showToast('Foto profil dikosongkan.');
+    }
+
+    function updateOrgNodePhotoPreview(photoUrl) {
+      const preview = document.getElementById('orgNodePhotoPreview');
+      if (!preview) return;
+
+      if (photoUrl) {
+        preview.innerHTML = `<img src="${photoUrl}" class="w-full h-full object-cover rounded-full" alt="Preview Foto">`;
+      } else {
+        preview.innerHTML = `<i class="bi bi-person text-3xl text-slate-400"></i>`;
+      }
+    }
+
+    function saveOrgNode() {
+      const id = document.getElementById('orgNodeId').value;
+      const name = document.getElementById('orgNodeName').value.trim();
+      const nip = document.getElementById('orgNodeNip').value.trim();
+      const title = document.getElementById('orgNodeTitle').value.trim();
+      const level = parseInt(document.getElementById('orgNodeLevel').value) || 3;
+      const company = document.getElementById('orgNodeCompany').value;
+      const dept = document.getElementById('orgNodeDept').value;
+      const parentId = document.getElementById('orgNodeParent').value;
+      const span = document.getElementById('orgNodeSpan').value.trim();
+      const status = document.getElementById('orgNodeStatus').value;
+      const photo = document.getElementById('orgNodePhotoData').value || tempOrgNodePhoto;
+
+      if (!name || !title) {
+        alert('Nama Pejabat dan Nama Jabatan wajib diisi!');
+        return;
+      }
+
+      if (id) {
+        // Edit existing
+        const node = appState.orgNodes.find(n => n.id === id);
+        if (node) {
+          node.name = name;
+          node.nip = nip;
+          node.title = title;
+          node.level = level;
+          node.company = company;
+          node.dept = dept;
+          node.parentId = parentId;
+          node.span = span;
+          node.status = status;
+          if (photo !== undefined) node.photo = photo;
+        }
+        showToast(`Posisi "${title}" berhasil diperbarui!`);
+      } else {
+        // Create new
+        const newId = `org-${Date.now()}`;
+        appState.orgNodes.push({
+          id: newId,
+          name,
+          nip,
+          title,
+          level,
+          company,
+          dept,
+          parentId,
+          span,
+          status,
+          photo: photo || ''
+        });
+        showToast(`Posisi baru "${title}" berhasil ditambahkan ke bagan!`);
+      }
+
+      saveState();
+      renderOrgChart();
+      closeModal('orgNodeModal');
+    }
+
+    function onDeleteOrgNodeFromModal() {
+      const id = document.getElementById('orgNodeId').value;
+      if (id) {
+        deleteOrgNode(id);
+      }
+    }
+
+    function deleteOrgNode(nodeId) {
+      if (!appState || !appState.orgNodes) return;
+      const node = appState.orgNodes.find(n => n.id === nodeId);
+      if (!node) return;
+
+      if (node.level === 1 && appState.orgNodes.filter(n => n.level === 1).length <= 1) {
+        alert('Keamanan Terkunci: Sistem harus memiliki minimal satu posisi pucuk pimpinan (Level 1 / BOD).');
+        return;
+      }
+
+      // Check if node has subordinates
+      const children = appState.orgNodes.filter(n => n.parentId === nodeId);
+      let confirmMsg = `Apakah Anda yakin ingin menghapus posisi "${node.title}" (${node.name})?`;
+      if (children.length > 0) {
+        confirmMsg += `\n\nPerhatian: Terdapat ${children.length} posisi bawahan yang terhubung. Posisi bawahan akan dialihkan ke atasan langsung dari posisi ini.`;
+      }
+
+      if (confirm(confirmMsg)) {
+        // Re-assign subordinates to parent's supervisor
+        children.forEach(c => {
+          c.parentId = node.parentId || '';
+        });
+
+        appState.orgNodes = appState.orgNodes.filter(n => n.id !== nodeId);
+        saveState();
+        renderOrgChart();
+        closeModal('orgNodeModal');
+        showToast(`Posisi "${node.title}" berhasil dihapus.`);
+      }
+    }
     // --- 14. ENTERPRISE GLOBAL SEARCH (CTRL+K) ---
     function openGlobalSearch() {
       openModal('globalSearchModal');
@@ -7017,7 +7381,7 @@ function renderPaginationControls(totalPages) {
 
   
     // --- 18. ENTERPRISE REPORT ENGINE: ORG CHART & 9-BOX PRINTING ---
-    function printOrgChartReport() {
+function printOrgChartReport() {
       const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
       
       document.getElementById('reportModalHeading').innerText = 'Cetak Laporan Struktur Organisasi & Rantai Komando';
@@ -7026,58 +7390,37 @@ function renderPaginationControls(totalPages) {
       document.getElementById('repPrintDate').innerText = dateStr;
       document.getElementById('repCode').innerText = `ORG-REP/${new Date().getFullYear()}/XI/${Math.floor(Math.random()*899+100)}`;
 
-      const orgData = [
-        { level: "Level 1: BOD", name: "Bambang Soediro, M.B.A.", nip: "DIR-001", pos: "Direktur Utama (President Director / CEO)", entity: "PT Nusantara Solusi Holding", boss: "Pemegang Saham / RUPS", span: "2 Direktur" },
-        { level: "Level 2: Directorate", name: "Sarah Wijaya, S.Psi., CHRP", nip: "EMP-003", pos: "Head of Human Resources & Corporate Affairs", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "2 Divisi (HR & GA)" },
-        { level: "Level 2: Directorate", name: "Ir. Bambang Hermanto", nip: "DIR-002", pos: "Head of Operations & Supply Chain", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "3 Area Site / Fleet" },
-        { level: "Level 3: Manager", name: "Hendro Susilo, S.T.", nip: "EMP-002", pos: "Operations Manager (Site & Fleet Logistics)", entity: "PT Logistik Express", boss: "Ir. Bambang Hermanto", span: "4 Staf Operasional" },
-        { level: "Level 3: Manager", name: "Maya Putri, S.I.Kom.", nip: "EMP-009", pos: "HR Operations & Talent Acquisition Manager", entity: "PT Nusantara Solusi Holding", boss: "Sarah Wijaya", span: "3 Staf HRD" },
-        { level: "Level 3: Manager", name: "Dian Lestari, S.E., Ak.", nip: "EMP-004", pos: "Finance & Payroll Accounting Manager", entity: "PT Nusantara Solusi Holding", boss: "Bambang Soediro (CEO)", span: "3 Staf Finance" },
-        { level: "Level 4: Supervisor", name: "Ahmad Fauzi", nip: "EMP-2024-0095", pos: "Field Operations & Warehouse Supervisor", entity: "PT Logistik Express (Site Cikarang)", boss: "Hendro Susilo, S.T.", span: "4 Staf Lapangan" },
-        { level: "Level 4: Supervisor", name: "Rizky Pratama, S.Kom.", nip: "EMP-2025-0119", pos: "Lead IT Infrastructure & Systems", entity: "PT Retail Maju (Surabaya)", boss: "Anton Wijoyo", span: "2 Staf IT" },
-        { level: "Level 5: Senior Staff", name: "Budi Santoso", nip: "EMP-2024-0082", pos: "Senior Field Technician (Mechanical/Electrical)", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo / Ahmad Fauzi", span: "Pelaksana Teknis Mandiri" },
-        { level: "Level 5: Staff", name: "Fajar Nugraha", nip: "EMP-2024-0067", pos: "Field Quality Inspector (QC Operations)", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo, S.T.", span: "Pelaksana Teknis" },
-        { level: "Level 5: Staff", name: "Hadi Purnomo", nip: "EMP-2024-0078", pos: "Heavy Fleet & Logistics Driver", entity: "PT Logistik Express (Cikarang)", boss: "Hendro Susilo, S.T.", span: "Pelaksana Armada" },
-        { level: "Level 5: Staff", name: "Siti Nurhaliza", nip: "EMP-2024-0091", pos: "Warehouse Staff & GA Consumables", entity: "PT Logistik Express (Cikarang)", boss: "Ahmad Fauzi", span: "Pelaksana Logistik" }
-      ];
+      const nodes = appState.orgNodes || [];
 
       let tableHtml = `
-        <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Total Personel</span><span class="text-sm font-black text-slate-900">1,248 Karyawan</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Rantai Komando</span><span class="text-sm font-black text-indigo-700">5 Tingkat Hierarki</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Jumlah Divisi</span><span class="text-sm font-black text-slate-900">5 Divisi Utama</span></div>
-          <div><span class="text-[9px] text-slate-400 font-bold uppercase block">Rata-rata Span of Control</span><span class="text-sm font-black text-emerald-700">1 : 4 (Ideal)</span></div>
-        </div>
-
         <table class="w-full text-left text-xs border border-slate-300">
-          <thead class="bg-slate-100 border-b border-slate-300 font-bold uppercase text-[9px] text-slate-700">
+          <thead class="bg-slate-100 text-slate-800 font-bold uppercase text-[10px] tracking-wider border-b border-slate-300">
             <tr>
-              <th class="p-2 border-r border-slate-300 text-center w-10">No</th>
-              <th class="p-2 border-r border-slate-300">Tingkat Hierarki</th>
+              <th class="p-2 border-r border-slate-300 text-center">No</th>
+              <th class="p-2 border-r border-slate-300 text-center">Level Hierarki</th>
               <th class="p-2 border-r border-slate-300">Nama Pejabat & NIP</th>
-              <th class="p-2 border-r border-slate-300">Posisi / Jabatan Struktural</th>
-              <th class="p-2 border-r border-slate-300">Entitas & Lokasi</th>
-              <th class="p-2 border-r border-slate-300">Atasan Langsung (Pelaporan)</th>
-              <th class="p-2 text-center">Span of Control</th>
+              <th class="p-2 border-r border-slate-300">Jabatan Struktural</th>
+              <th class="p-2 border-r border-slate-300">Entitas Korporasi</th>
+              <th class="p-2 border-r border-slate-300">Atasan Langsung</th>
+              <th class="p-2 border-r border-slate-300 text-center">Span of Control</th>
+              <th class="p-2 text-center">Status</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200">
       `;
 
-      orgData.forEach((row, i) => {
-        const bgCls = (i % 2 === 0) ? 'bg-white' : 'bg-slate-50/60';
+      nodes.forEach((n, i) => {
+        const parent = nodes.find(p => p.id === n.parentId);
         tableHtml += `
-          <tr class="${bgCls} hover:bg-indigo-50/40">
-            <td class="p-2 border-r border-slate-200 text-center font-bold text-slate-500">${i+1}</td>
-            <td class="p-2 border-r border-slate-200 font-bold text-indigo-900">${row.level}</td>
-            <td class="p-2 border-r border-slate-200">
-              <div class="font-bold text-slate-900">${row.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${row.nip}</div>
-            </td>
-            <td class="p-2 border-r border-slate-200 font-semibold text-slate-800">${row.pos}</td>
-            <td class="p-2 border-r border-slate-200 text-[11px] text-slate-600">${row.entity}</td>
-            <td class="p-2 border-r border-slate-200 text-[11px] text-slate-600">${row.boss}</td>
-            <td class="p-2 text-center font-semibold text-indigo-700 text-[11px]">${row.span}</td>
+          <tr>
+            <td class="p-2 border-r border-slate-200 text-center">${i + 1}</td>
+            <td class="p-2 border-r border-slate-200 text-center font-bold text-indigo-700">Level ${n.level}</td>
+            <td class="p-2 border-r border-slate-200 font-bold">${n.name}<br><span class="font-mono text-[9px] text-slate-500">NIP: ${n.nip || '-'}</span></td>
+            <td class="p-2 border-r border-slate-200 font-semibold text-slate-900">${n.title}</td>
+            <td class="p-2 border-r border-slate-200 text-[10px] text-slate-700">${n.company} (${n.dept})</td>
+            <td class="p-2 border-r border-slate-200 text-[10px] text-slate-600">${parent ? `${parent.name} (${parent.title})` : '- (Top Management)'}</td>
+            <td class="p-2 border-r border-slate-200 text-center font-mono text-[10px]">${n.span || '-'}</td>
+            <td class="p-2 text-center"><span class="px-2 py-0.5 rounded-full font-bold text-[9px] ${n.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${n.status === 'Active' ? 'Aktif' : 'Lowong'}</span></td>
           </tr>
         `;
       });
@@ -7690,6 +8033,147 @@ function renderPaginationControls(totalPages) {
           </button>
         </div>
       </div>
+    </div>
+  </div>
+  <!-- ================= MODAL: CRUD POSISI STRUKTUR ORGANISASI & UPLOAD FOTO ================= -->
+  <div id="orgNodeModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto no-print">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-slate-200 my-8">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-xl font-bold shadow-2xs">
+            <i class="bi bi-diagram-3-fill"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900" id="orgNodeModalTitle">Tambah Posisi Organisasi Baru</h3>
+            <p class="text-xs text-slate-500">Kelola hierarki rantai komando, data pejabat, dan foto profil</p>
+          </div>
+        </div>
+        <button onclick="closeModal('orgNodeModal')" class="text-slate-400 hover:text-slate-600 font-bold text-2xl px-2">&times;</button>
+      </div>
+
+      <form id="orgNodeForm" onsubmit="event.preventDefault(); saveOrgNode();" class="space-y-4 text-xs">
+        <input type="hidden" id="orgNodeId" value="" />
+        <input type="hidden" id="orgNodePhotoData" value="" />
+
+        <!-- Photo Upload Box -->
+        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-4">
+          <div id="orgNodePhotoPreview" class="w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shrink-0 shadow-xs relative">
+            <i class="bi bi-person text-3xl text-slate-400"></i>
+          </div>
+          <div class="space-y-1.5 flex-1">
+            <label class="block font-bold text-slate-800 text-xs">Foto Resmi Pejabat / Pegawai:</label>
+            <div class="flex items-center gap-2">
+              <input type="file" id="orgNodePhotoInput" accept="image/*" onchange="handleOrgNodePhotoUpload(event)" class="hidden" />
+              <button type="button" onclick="document.getElementById('orgNodePhotoInput').click()" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition">
+                <i class="bi bi-camera-fill text-rose-600"></i> Pilih / Unggah Foto
+              </button>
+              <button type="button" onclick="clearOrgNodePhoto()" class="text-xs text-rose-600 hover:underline font-semibold">
+                Hapus Foto
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 leading-tight">Mendukung format JPG, PNG, WEBP (Maks 2MB). Foto akan tersimpan permanen.</p>
+          </div>
+        </div>
+
+        <!-- Quick Populate from Master Employee -->
+        <div class="bg-indigo-50/60 p-3 rounded-xl border border-indigo-100 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <i class="bi bi-link-45deg text-indigo-600 text-lg"></i>
+            <div>
+              <span class="font-bold text-indigo-950 text-xs block">Hubungkan dengan Database Pegawai:</span>
+              <span class="text-[10px] text-indigo-700">Otomatis mengisi nama, NIP, jabatan, departemen, dan entitas</span>
+            </div>
+          </div>
+          <select id="orgNodeEmpSelect" onchange="onOrgNodeEmpSelect(this.value)" class="bg-white border border-indigo-200 text-indigo-950 text-xs rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none max-w-[200px]">
+            <option value="">-- Pilih Pegawai --</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nama Lengkap Pejabat *</label>
+            <input type="text" id="orgNodeName" placeholder="Contoh: Sarah Wijaya, S.Psi." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none" required />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nomor Induk Pegawai (NIP) *</label>
+            <input type="text" id="orgNodeNip" placeholder="Contoh: EMP-003" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-mono focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none" required />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nama Jabatan Struktural *</label>
+            <input type="text" id="orgNodeTitle" placeholder="Contoh: Head of Human Resources" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none" required />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tingkat Hierarki (Level) *</label>
+            <select id="orgNodeLevel" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+              <option value="1">Level 1: Direksi (BOD / C-Level)</option>
+              <option value="2">Level 2: Kepala Divisi / General Manager</option>
+              <option value="3">Level 3: Kepala Departemen / Manager</option>
+              <option value="4">Level 4: Supervisor / Team Leader</option>
+              <option value="5">Level 5: Staff Pelaksana / Frontline</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Entitas Korporasi *</label>
+            <select id="orgNodeCompany" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+              <option value="PT Nusantara Solusi (Holding)">PT Nusantara Solusi (Holding)</option>
+              <option value="PT Logistik Express">PT Logistik Express</option>
+              <option value="PT Retail Maju">PT Retail Maju</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Departemen / Divisi *</label>
+            <select id="orgNodeDept" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+              <option value="Direksi">Direksi</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Operations">Operations</option>
+              <option value="Finance">Finance</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="General Affairs">General Affairs</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Atasan Langsung (Reports To)</label>
+            <select id="orgNodeParent" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+              <option value="">-- Tidak Ada / Level Puncak (CEO) --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Span of Control / Keterangan</label>
+            <input type="text" id="orgNodeSpan" placeholder="Contoh: 4 Staf Operasional" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Status Keterisian Jabatan</label>
+          <select id="orgNodeStatus" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+            <option value="Active">Terisi Aktif (Active)</option>
+            <option value="Vacant">Lowong (Vacant Position)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+          <button type="button" id="orgNodeDeleteBtn" onclick="onDeleteOrgNodeFromModal()" class="px-3.5 py-2 text-rose-600 hover:bg-rose-50 rounded-xl font-bold text-xs flex items-center gap-1.5 transition hidden">
+            <i class="bi bi-trash-fill"></i> Hapus Posisi
+          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button type="button" onclick="closeModal('orgNodeModal')" class="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition">
+              Batal
+            </button>
+            <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+              <i class="bi bi-check2-circle"></i> Simpan Posisi
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </body>

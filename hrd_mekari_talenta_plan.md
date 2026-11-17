@@ -112,16 +112,25 @@ Tabel berikut menyandingkan setiap modul rencana dengan implementasi riil pada b
 * **Multi-Entity & Multi-Branch Architecture**:
   * Pengaturan hierarki korporasi: Holding Company (PT Nusantara Solusi) -> Anak Perusahaan (PT Logistik Express, PT Retail Maju) -> Cabang/Site (Jakarta Pusat, Surabaya, Cikarang).
   * Terimplementasi pada select filter `#headerEntitySelect` dan filter database pegawai.
-* **Menu & Modul Struktur Organisasi Hierarkis (Interactive Org Chart)**:
+* **Menu & Modul Struktur Organisasi Hierarkis (Interactive Org Chart & Dynamic CRUD)**:
   * **Dedicated Menu Sidebar**: Tombol navigasi langsung `switchTab('orgchart')` dengan badge *"5-Level"* yang membuka halaman utuh `#tab-orgchart`.
-  * **Interactive Controls**: Dilengkapi input pencarian instan `#orgChartSearch` untuk menandai (*highlight*) node pegawai, filter entitas holding/subsidiary `#orgChartEntitySelect`, tombol modal layar penuh `openModal('orgChartModal')` / `openOrgChartModal()`, dan tombol cetak laporan resmi.
-  * **Bagan Visual 5-Level Lengkap**:
-    1. *Level 1: Board of Directors (CEO / Direktur Utama Bambang Soediro, M.B.A.)*
-    2. *Level 2: Directorate Level (Head of HR Sarah Wijaya & Head of Operations Bambang Hermanto)*
-    3. *Level 3: Middle Management (Operations Manager Hendro Susilo, HR Manager Maya Putri, Finance Manager Dian Lestari)*
-    4. *Level 4: Supervisory Level (Field Supervisor Ahmad Fauzi)*
-    5. *Level 5: Frontline Staff & Technicians (Budi Santoso, Fajar Nugraha, Hadi Purnomo, Siti Nurhaliza)*
-  * **Interaktivitas Kartu**: Klik pada kartu pegawai membuka modal Personal Dossier Pegawai (`viewEmployeeDetail()`).
+  * **Manajemen CRUD Posisi & Node Jabatan (`#orgNodeModal`)**:
+    * *Create*: Tambah posisi baru dengan memilih pegawai dari master database, menentukan level 1 s.d 5, entitas PT, departemen, dan atasan langsung (*reports to*).
+    * *Read*: Visualisasi pohon 5 level dinamis (`buildOrgTreeHTML()`) dan tampilan tabel komprehensif (`#orgChartTableView`).
+    * *Update*: Edit nama posisi, pejabat pemegang jabatan, NIP, relasi hierarki, span of control, dan status keterisian (*Active* / *Vacant*).
+    * *Delete*: Hapus posisi dengan proteksi root Level 1 BOD dan pengalihan hierarki bawahan langsung ke atasan (*safe orphan re-assignment*).
+  * **Unggah Foto Pejabat (Base64 File Picker & Preview)**:
+    * Fasilitas unggah foto profil resmi pejabat organisasi dari file lokal (`#orgNodePhotoInput`, `handleOrgNodePhotoUpload()`) menggunakan HTML5 FileReader ke Base64 data URI.
+    * Pratinjau foto melingkar instan, tombol pengosongan foto, dan avatar inisial otomatis.
+  * **Mode Tampilan Ganda (Bagan Pohon vs Tabel Posisi)**:
+    * Tombol alih mode `#orgViewToggleBtn` (`toggleOrgChartView()`) untuk beralih antara bagan pohon hierarki visual dan daftar tabel tabular terstruktur.
+  * **Pencarian Real-Time & Filter Granular**:
+    * Input pencarian instan `#orgChartSearch` untuk menandai dan menyaring node pegawai/jabatan.
+    * Filter dropdown entitas multi-holding `#orgChartEntitySelect` dan departemen `#orgChartDeptSelect`.
+  * **Pencetakan Laporan Resmi Berstempel ISO**:
+    * Fungsi cetak laporan dinamis `printOrgChartReport()` yang membaca data real-time dari `appState.orgNodes` dan menyusun tabel resmi berstandar korporat ISO 27001.
+  * **Modal Layar Penuh (Fullscreen Modal)**:
+    * Modal `#orgChartModal` untuk presentasi bagan struktur organisasi dalam ukuran ekstra besar.
 * **Database Karyawan Skala Besar (High-Volume Directory)**:
   * Master Profil: Data Pribadi, NIK KTP, NIP, NPWP, BPJS Kesehatan, BPJS Ketenagakerjaan, PTKP, Golongan Darah, Bank, Status Kerja.
   * Fitur Pencarian & Filter: Pencarian instan kata kunci pada NIK/NIP/Nama/Jabatan, filter departemen, filter status kerja.

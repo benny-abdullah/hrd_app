@@ -59,20 +59,34 @@ Seluruh fungsi aplikasi dibangun dalam konsep **Zero External Build Step** (Sing
 * **Karakteristik & Kapabilitas**:
   - **Dedicated Menu Navigasi Sidebar**: Dilengkapi menu mandiri *"Struktur Organisasi (Org Chart)"* (`switchTab('orgchart')`, `data-tab="orgchart"`) dengan badge *"5-Level"* yang langsung membuka tampilan penuh `#tab-orgchart`.
   - **Multi-Entity & Multi-Branch Architecture**: Dilengkapi selector entitas holding (`#headerEntitySelect`, `#orgChartEntitySelect`) dan cabang (`#headerBranchSelect`) yang memungkinkan pengguna beralih antara induk holding (*PT Nusantara Solusi*) dan anak-anak perusahaan (*PT Logistik Express*, *PT Retail Maju*) serta unit kantor/lapangan (*Jakarta HQ, Surabaya Branch, Site Cikarang*).
+  - **Manajemen Struktur Organisasi Interaktif & CRUD Node Posisi (`#orgNodeModal`)**:
+    - **Operasi Tambah Posisi (Create)**: Tombol *"Tambah Posisi / Node"* (`openOrgNodeModal('add')`) membuka form penambahan jabatan baru yang dapat langsung ditautkan dengan master pegawai (`#orgNodeEmployeeSelect`), penentuan level 1 s.d 5, penempatan entitas PT, departemen, serta atasan langsung (*reports to*).
+    - **Operasi Sunting Posisi (Update)**: Mengklik kartu posisi pada bagan pohon maupun tombol *"Edit"* pada tabel posisi (`openOrgNodeModal('edit', nodeId)`) membuka form yang terisi data jabatan lengkap untuk diperbarui seketika.
+    - **Operasi Hapus Posisi (Delete)**: Tombol *"Hapus Posisi"* (`deleteOrgNode(nodeId)`) dengan proteksi keamanan terpadu: pencegahan penghapusan root Level 1 BOD dan pengalihan otomatis hierarki bawahan langsung ke atasan di atasnya (*orphan adoption*).
+  - **Upload & Pengelolaan Foto Resmi Pejabat (Base64 File Picker)**:
+    - Input berkas file gambar (`#orgNodePhotoInput`, `handleOrgNodePhotoUpload()`) mengonversi gambar lokal (JPG/PNG maksimal 2MB) menjadi string Base64 yang tersimpan otomatis di dalam state `node.photo` dan `localStorage`.
+    - Dilengkapi lingkaran pratinjau (*live circular preview*) ber-rasio 1:1, tombol hapus foto profil, dan avatar fallback berinisial jika foto belum diunggah.
+  - **Mode Tampilan Ganda (Bagan Pohon Visual vs Tabel Daftar Posisi)**:
+    - Tombol alih mode (`toggleOrgChartView()`, `#orgViewToggleBtn`) memungkinkan pergantian instan antara **Bagan Pohon Hierarki Visual** (`#orgChartTreeView`) dan **Tabel Daftar Posisi Komprehensif** (`#orgChartTableView`) lengkap dengan indikator level berbobot warna dan foto pejabat.
   - **Bagan Struktur Organisasi 5-Level Interaktif (`#tab-orgchart` & `#orgChartModal`)**:
     1. *Level 1: Board of Directors (Direktur Utama / CEO: Bambang Soediro, M.B.A.)*
     2. *Level 2: Directorate Level (Head of HR Sarah Wijaya & Head of Operations Bambang Hermanto)*
     3. *Level 3: Middle Management (Operations Manager Hendro Susilo, HR Manager Maya Putri, Finance Manager Dian Lestari)*
-    4. *Level 4: Supervisory Level (Field Supervisor Ahmad Fauzi)*
-    5. *Level 5: Frontline Technical Staff (Budi Santoso, Fajar Nugraha, Hadi Purnomo, Siti Nurhaliza)*
-  - **Interactive Tree Controls**: Dilengkapi input pencarian instan `#orgChartSearch` (`filterOrgChartNodes()`) untuk mencari nama atau posisi yang otomatis menyorot (*highlight*) node bersangkutan, filter entitas holding, tombol modal layar penuh `openModal('orgChartModal')` / `openOrgChartModal()`, serta tombol cetak laporan struktur organisasi.
-  - **Interaktivitas Kartu Pegawai**: Setiap kartu di dalam bagan dapat diklik untuk membuka berkas profil personal dossier lengkap (`viewEmployeeDetail()`).
-  - **Personal Dossier Master Karyawan (`#employeeDetailModal`)**: Kartu profil 4-seksioner profesional:
+    4. *Level 4: Supervisory Level (Field Supervisor Anton Wijoyo & IT Supervisor Rina Melati)*
+    5. *Level 5: Frontline Staff (Budi Santoso, Kevin Sanjaya, Siti Rahmawati)*
+  - **Interactive Tree Controls & Granular Filters**:
+    - Filter kata kunci real-time `#orgChartSearch` menyaring posisi atau nama pejabat.
+    - Filter entitas holding/anak perusahaan `#orgChartEntitySelect`.
+    - Filter departemen/divisi `#orgChartDeptSelect`.
+    - Tombol modal layar penuh `openModal('orgChartModal')` dan cetak bagan organisasi dinamis `printOrgChartReport()`.
+  - **Metrik Ringkasan Otomatis (Live Calculated Cards)**:
+    - 4 Kartu metrik: *Total Posisi Jabatan* (`#orgStatTotal`), *Tingkat Hierarki* (5 Level), *Divisi & Departemen* (`#orgStatDepts`), dan *Rata-rata Span of Control* (`#orgStatSpan`).
+  - **Personal Dossier Master Karyawan (`#employeeDetailModal`)**: Kartu profil 4-seksi profesional:
     1. *Data Kependudukan*: NIK KTP, NIP, Tempat Tanggal Lahir, Jenis Kelamin, Golongan Darah, Alamat KTP, No. HP.
     2. *Status Penempatan*: Unit Perusahaan, Lokasi Cabang, Divisi, Jabatan, Level Pekerjaan, Tanggal Masuk, Status Kontrak (PKWTT Tetap / PKWT Kontrak).
     3. *Kompensasi & Perpajakan*: Gaji Pokok, Tunjangan Jabatan, Status PTKP (TK/0 s.d K/3), Kategori Tarif Efektif Rata-rata (TER A/B/C), NPWP 16 Digit.
     4. *Jaminan Sosial & Perbankan*: No. BPJS Ketenagakerjaan (11 digit), No. BPJS Kesehatan (13 digit), Nama Bank Payroll, Nomor Rekening.
-  - **Pencarian, Multi-Filter & Paginasi Dinamis**:
+  - **Pencarian, Multi-Filter & Paginasi Dinamis Database Karyawan**:
     - Input pencarian instan `#employeeSearchInput` menyaring data berdasarkan kata kunci NIP, Nama, maupun Jabatan tanpa refresh halaman.
     - Filter dropdown `#filterDeptSelect` (Semua, Operasional, HRD, IT, Finance, GA) dan `#filterStatusSelect` (Aktif, Cuti, Probasi).
     - Kontrol paginasi `#employeePageSizeSelect` (5, 10, 25 baris per halaman) dilengkapi tombol *Previous, Halaman Aktif, Next* (`renderPaginationControls()`).
@@ -319,6 +333,28 @@ Seluruh fungsi aplikasi dibangun dalam konsep **Zero External Build Step** (Sing
     - **Siklus Sesi Masuk & Keluar (Seamless Login & Logout Lifecycle)**:
       - Tombol *"Keluar (Logout)"* tersedia secara eksplisit di header aplikasi kanan atas dan di dalam menu profil pengguna.
       - Mengklik tombol Keluar secara instan mengakhiri sesi, membersihkan kredensial aktif, memunculkan notifikasi *"Anda telah keluar dan kembali ke Halaman Welcome"*, dan menampilkan Halaman Welcome secara halus tanpa perlu reload halaman.
+
+---
+
+### 3.16. Modul 16: Interaktivitas CRUD Struktur Organisasi & Upload Foto Pejabat (Dynamic Org Hierarchy Engine)
+* **Karakteristik & Kapabilitas Teknis**:
+  - **Data Model Hierarkis Reaktif (`appState.orgNodes`)**:
+    - Setiap node menyimpan atribut: `id`, `name`, `nip`, `title`, `level` (1-5), `dept`, `company`, `parentId`, `span`, `status` (*Active* / *Vacant*), dan `photo` (string URL atau Base64 data URI).
+    - Terintegrasi penuh dengan `DEFAULT_DATA.orgNodes` dan auto-sync dengan `localStorage`.
+  - **Mesin Rendering Pohon Dinamis (`buildOrgTreeHTML()`)**:
+    - Membangun simpul hierarkis visual 5 level dengan garis konektor vertikal/horizontal CSS murni.
+    - Setiap kartu menampilkan: avatar foto pejabat (dengan fallback inisial bergradasi), badge level berbobot warna, nama lengkap, NIP, jabatan struktural, entitas/unit bisnis, badge status keterisian, span of control, tombol tambah bawahan langsung (+), serta tombol edit posisi.
+  - **Upload Foto Pejabat Mandiri via Base64 (`handleOrgNodePhotoUpload()`)**:
+    - Menggunakan API peramban modern HTML5 `FileReader.readAsDataURL(file)`.
+    - Melakukan validasi ukuran berkas (maksimal 2MB) dan tipe format gambar.
+    - Foto otomatis ter-render seketika pada kartu bagan visual, tabel posisi, pratinjau modal, dan lembar cetak laporan resmi ISO.
+  - **Pengelolaan Rantai Komando & Keamanan Hierarki (`deleteOrgNode()`)**:
+    - Proteksi integritas Level 1 (BOD) menjamin struktur organisasi selalu memiliki pucuk pimpinan.
+    - Logika penghapusan otomatis mengidentifikasi simpul bawahan (*children nodes*) dan mengalihkan relasi atasan (`parentId`) ke atasan dari node yang dihapus, mencegah timbulnya *dangling / orphaned nodes*.
+  - **Pencetakan Laporan Struktur Dinamis (`printOrgChartReport()`)**:
+    - Membaca data posisi terkini langsung dari `appState.orgNodes`.
+    - Menyusun tabel komprehensif 8-kolom: No, Level Hierarki, Nama Pejabat & NIP, Jabatan Struktural, Entitas Korporasi, Atasan Langsung, Span of Control, dan Status Keterisian.
+    - Ditampilkan dalam format lembar cetak standar korporat berstempel ISO 27001 dan siap diekspor ke PDF.
 
 ---
 
